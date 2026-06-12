@@ -3,7 +3,67 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 from sqlalchemy import create_engine
+import streamlit as st
+import pandas as pd
+import folium
+from streamlit_folium import st_folium
+from sqlalchemy import create_engine
 
+st.set_page_config(layout="wide", page_title="Аналитика Недвижимости СПб")
+st.title("Рынок жилой недвижимости СПб")
+
+SUPABASE_URL = 'postgresql://postgres.mxkmpveociwhuyasdkyf:Vjnjhjkf_2024!@aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require'
+
+# === АДМИН-ПАНЕЛЬ ДЛЯ ДОБАВЛЕНИЯ ДАННЫХ ===
+with st.expander("🔧 Админ-панель (добавить тестовые данные)"):
+    if st.button("➕ Добавить тестовый объект"):
+        try:
+            engine = create_engine(SUPABASE_URL)
+            with engine.connect() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO real_estate_spb 
+                    (id, address, lat, lon, price, area, rooms, reputation_score,
+                     floor, total_floors, series, year_built, wall_type,
+                     has_lift, has_balcony, district, dist_metro_m)
+                    VALUES 
+                    (1, 'Невский проспект, 1', 59.9343, 30.3351, 15000000, 65.5, 3, 75,
+                     5, 9, 'Сталинка', 1955, 'Кирпич', true, true, 'Центральный', 500)
+                    ON CONFLICT (id) DO NOTHING
+                    """
+                )
+                conn.commit()
+            st.success("✅ Тестовый объект добавлен! Обнови страницу (F5)")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Ошибка: {e}")
+
+@st.cache_data
+def load_data():
+    try:
+        engine = create_engine(SUPABASE_URL)
+        df = pd.read_sql("SELECT * FROM real_estate_spb", engine)
+        
+        if df.empty:
+            return df
+        
+        df["price"] = pd.to_numeric(df["price"], errors="coerce")
+        df["area"] = pd.to_numeric(df["area"], errors="coerce")
+        df["reputation_score"] = pd.to_numeric(df["reputation_score"], errors="coerce")
+        df.dropna(inplace=True)
+        
+        return df
+    except Exception as e:
+        st.error(f"Ошибка: {e}")
+        return pd.DataFrame()
+
+df = load_data()
+
+if not df.empty:
+    st.success(f"Загружено {len(df)} объектов")
+    # ... дальше твой код с картой ...
+else:
+    st.info("Нет данных. Нажми кнопку выше, чтобы добавить тестовый объект")
 st.set_page_config(layout="wide", page_title="Аналитика Недвижимости СПб")
 st.title("Рынок жилой недвижимости СПб")
 
