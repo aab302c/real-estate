@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
+from sqlalchemy import text
 
 st.set_page_config(layout="wide", page_title="Аналитика Недвижимости СПб")
 st.title("Рынок жилой недвижимости СПб")
