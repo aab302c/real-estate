@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, text
 from math import sqrt
 
 # === ПОДКЛЮЧЕНИЕ К SUPABASE ===
-SUPABASE_URL = "postgresql://postgres.slptviusyrxpkyzbdyeq:Bz9-mz7yQH-QF2B@aws-0-eu-west-3.pooler.supabase.com:5432/postgres"
+SUPABASE_URL = "postgresql://postgres.mxkmpveociwhuyasdkyf:Vjnjhjkf_2024!@aws-0-eu-west-1.pooler.supabase.com:5432/postgres"
 
 def get_engine():
     """Создает движок SQLAlchemy с SSL для Supabase"""
