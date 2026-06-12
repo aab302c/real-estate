@@ -16,21 +16,28 @@ def get_engine():
 @st.cache_data
 def load_data():
     try:
-        engine = get_engine()
+        st.info("🔄 Подключаюсь к Supabase...")
+        engine = create_engine(SUPABASE_URL)
+        st.info("✅ Подключение установлено, загружаю данные...")
+        
         df = pd.read_sql("SELECT * FROM real_estate_spb", engine)
+        st.info(f"📊 Загружено {len(df)} строк из таблицы")
         
         if df.empty:
-            st.error("❌ Таблица real_estate_spb пуста")
+            st.warning("⚠️ Таблица real_estate_spb пуста. Добавьте данные через SQL или парсер.")
             return df
         
-        # Приводим к числам, убираем битые строки
         df["price"] = pd.to_numeric(df["price"], errors="coerce")
         df["area"] = pd.to_numeric(df["area"], errors="coerce")
         df["reputation_score"] = pd.to_numeric(df["reputation_score"], errors="coerce")
         df.dropna(inplace=True)
+        
+        st.success(f"✅ Готово: {len(df)} объектов после очистки")
         return df
+        
     except Exception as e:
-        st.error(f"❌ Ошибка подключения к базе: {e}")
+        st.error(f"❌ Ошибка подключения: {e}")
+        st.error(f"Тип ошибки: {type(e).__name__}")
         return pd.DataFrame()
 
 df = load_data()
