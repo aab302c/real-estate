@@ -15,29 +15,42 @@ def get_engine():
 
 @st.cache_data
 def load_data():
+    # 1. Пробуем подключиться
+    st.text("1️⃣ Пытаюсь подключиться к Supabase...")
+    
     try:
-        st.info("🔄 Подключаюсь к Supabase...")
         engine = create_engine(SUPABASE_URL)
-        st.info("✅ Подключение установлено, загружаю данные...")
+        st.text("2️⃣ Engine создан, пробую выполнить запрос...")
         
+        # 2. Пробуем выполнить простой запрос
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT 1"))
+            st.text(f"3️⃣ Тестовый запрос выполнен: {result.fetchone()}")
+        
+        # 3. Загружаем данные
+        st.text("4️⃣ Загружаю данные из таблицы real_estate_spb...")
         df = pd.read_sql("SELECT * FROM real_estate_spb", engine)
-        st.info(f"📊 Загружено {len(df)} строк из таблицы")
+        
+        st.text(f"5️⃣ Загружено строк: {len(df)}")
         
         if df.empty:
-            st.warning("⚠️ Таблица real_estate_spb пуста. Добавьте данные через SQL или парсер.")
+            st.warning("⚠️ Таблица пуста. Добавьте хотя бы одну запись.")
             return df
         
+        # 4. Приводим типы
         df["price"] = pd.to_numeric(df["price"], errors="coerce")
         df["area"] = pd.to_numeric(df["area"], errors="coerce")
         df["reputation_score"] = pd.to_numeric(df["reputation_score"], errors="coerce")
         df.dropna(inplace=True)
         
-        st.success(f"✅ Готово: {len(df)} объектов после очистки")
+        st.success(f"✅ Готово: {len(df)} объектов")
         return df
         
     except Exception as e:
-        st.error(f"❌ Ошибка подключения: {e}")
-        st.error(f"Тип ошибки: {type(e).__name__}")
+        st.error(f"❌ ОШИБКА: {e}")
+        st.error(f"Тип: {type(e).__name__}")
+        import traceback
+        st.code(traceback.format_exc())
         return pd.DataFrame()
 
 df = load_data()
