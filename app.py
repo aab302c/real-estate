@@ -35,9 +35,14 @@ st.sidebar.header("Фильтры")
 districts = ["Все"] + sorted(df["district"].dropna().unique().tolist())
 selected_district = st.sidebar.selectbox("Район", districts)
 
+# Фикс для случая, когда одна цена
 min_price = int(df["price"].min()/1e6)
 max_price = int(df["price"].max()/1e6)
-price_range = st.sidebar.slider("Бюджет (млн ₽)", min_price, max_price, (min_price, max_price))
+
+if min_price == max_price:
+    price_range = st.sidebar.slider("Бюджет (млн ₽)", min_price, max_price + 1, (min_price, max_price + 1))
+else:
+    price_range = st.sidebar.slider("Бюджет (млн ₽)", min_price, max_price, (min_price, max_price))
 
 min_rep = st.sidebar.slider("Мин. рейтинг", 0, 100, 0)
 
