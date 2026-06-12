@@ -2,239 +2,162 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-from sqlalchemy import create_engine, text
-from math import sqrt
+from sqlalchemy import create_engine
+import math
 
 # === ПОДКЛЮЧЕНИЕ К SUPABASE ===
 SUPABASE_URL = "postgresql://postgres.mxkmpveociwhuyasdkyf:Vjnjhjkf_2024!@aws-0-eu-west-1.pooler.supabase.com:5432/postgres"
 
 def get_engine():
-    """Создает движок SQLAlchemy с SSL для Supabase"""
     return create_engine(SUPABASE_URL, connect_args={"sslmode": "require"})
 
 st.set_page_config(layout="wide", page_title="Аналитика Недвижимости СПб")
-st.title("🏠 Рынок жилой недвижимости СПб")
+st.title("Рынок жилой недвижимости СПб")
 
 @st.cache_data(ttl=300)
-def load_data_from_db():
-    """Загружает данные из таблицы real_estate_spb"""
+def load_data():
     try:
         engine = get_engine()
-        with engine.connect() as conn:
-            df = pd.read_sql("SELECT * FROM real_estate_spb", conn)
-            
-            df["price"] = pd.to_numeric(df["price"], errors="coerce")
-            df["area"] = pd.to_numeric(df["area"], errors="coerce")
-            df["reputation_score"] = pd.to_numeric(df["reputation_score"], errors="coerce")
-            df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
-            df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
-            
-            df = df.dropna(subset=["lat", "lon"])
-            
+        df = pd.read_sql("SELECT * FROM real_estate_spb", engine)
+        
+        if df.empty:
             return df
+            
+        df["price"] = pd.to_numeric(df["price"], errors="coerce")
+        df["area"] = pd.to_numeric(df["area"], errors="coerce")
+        df["reputation_score"] = pd.to_numeric(df["reputation_score"], errors="coerce")
+        df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
+        df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
+        
+        df = df.dropna(subset=["lat", "lon"])
+        return df
     except Exception as e:
-        st.error(f"Ошибка загрузки данных: {e}")
+        st.error(f"Ошибка: {e}")
         return pd.DataFrame()
 
-df = load_data_from_db()
+df = load_data()
 
-if not df.empty:
-    st.success(f"Загружено {len(df)} объектов")
+if df.empty:
+    st.warning("Нет данных. Добавьте объекты в таблицу real_estate_spb")
+    st.stop()
+
+st.success(f"Загружено {len(df)} объектов")
+
+# --- ФИЛЬТРЫ ---
+st.sidebar.header("Фильтры")
+
+districts = ["Все"] + sorted(df["district"].dropna().unique().tolist())
+selected_district = st.sidebar.selectbox("Район", districts)
+
+min_price = float(df["price"].min() / 1e6)
+max_price = float(df["price"].max() / 1e6)
+price_range = st.sidebar.slider("Бюджет (млн ₽)", min_price, max_price, (min_price, max_price))
+
+min_rating = st.sidebar.slider("Мин. рейтинг", 0, 100, 0)
+
+rooms_list = ["Все"] + sorted(df["rooms"].dropna().unique().tolist())
+selected_rooms = st.sidebar.selectbox("Комнаты", rooms_list)
+
+# Применяем фильтры
+mask = (df["price"] >= price_range[0] * 1e6) & (df["price"] <= price_range[1] * 1e6)
+mask &= (df["reputation_score"] >= min_rating)
+
+if selected_district != "Все":
+    mask &= (df["district"] == selected_district)
+if selected_rooms != "Все":
+    mask &= (df["rooms"] == selected_rooms)
+
+filtered_df = df[mask].copy()
+st.sidebar.metric("Найдено", len(filtered_df))
+
+if "selected_id" not in st.session_state:
+    st.session_state.selected_id = None
+
+# --- КАРТА И КАРТОЧКА ---
+col_map, col_card = st.columns([2, 1])
+
+with col_map:
+    st.subheader("Карта объектов")
     
-    # --- ФИЛЬТРЫ ---
-    st.sidebar.header("Фильтры")
+    m = folium.Map(location=[59.9343, 30.3351], zoom_start=11)
     
-    districts = ["Все"] + sorted(df["district"].dropna().unique().tolist())
-    selected_district = st.sidebar.selectbox("Район", districts)
-    
-    min_price_val, max_price_val = st.sidebar.slider(
-        "Бюджет (млн ₽)", 
-        float(df["price"].min() / 1e6), 
-        float(df["price"].max() / 1e6), 
-        (float(df["price"].min() / 1e6), float(df["price"].max() / 1e6)),
-        step=0.5
-    )
-    
-    min_rep = st.sidebar.slider("Мин. рейтинг", 0, 100, 0)
-    
-    rooms_options = ["Все", 1, 2, 3, 4]
-    selected_rooms = st.sidebar.selectbox("Комнаты", rooms_options)
-    
-    mask = (
-        (df["price"] >= min_price_val * 1e6) & 
-        (df["price"] <= max_price_val * 1e6) & 
-        (df["reputation_score"] >= min_rep)
-    )
-    
-    if selected_district != "Все":
-        mask &= (df["district"] == selected_district)
-    if selected_rooms != "Все":
-        mask &= (df["rooms"] == selected_rooms)
-    
-    filtered_df = df[mask].copy()
-    st.sidebar.markdown("---")
-    st.sidebar.metric("Найдено объектов", len(filtered_df))
-    
-    if "selected_id" not in st.session_state:
-        st.session_state.selected_id = None
-    
-    col_map, col_card = st.columns([2, 1])
-    
-    with col_map:
-        st.subheader("Карта объектов")
-        
-        m = folium.Map(location=[59.9343, 30.3351], zoom_start=11, tiles="OpenStreetMap")
-        
-        for _, row in filtered_df.iterrows():
-            if row["reputation_score"] and row["reputation_score"] > 70:
-                color = "green"
-            elif row["reputation_score"] and row["reputation_score"] > 50:
-                color = "orange"
-            else:
-                color = "red"
-            
-            tooltip_html = f"""
-            <div style="font-family: sans-serif; font-size: 13px;">
-                <b>{row['address']}</b><br>
-                💰 {int(row['price'] // 1_000_000)} млн ₽<br>
-                🛏️ {int(row['rooms']) if row['rooms'] else '?'} комн. | 📐 {row['area']:.1f} м²<br>
-                ⭐ Рейтинг: {int(row['reputation_score']) if row['reputation_score'] else '?'}
-            </div>
-            """
-            
-            folium.CircleMarker(
-                location=[row["lat"], row["lon"]],
-                radius=8,
-                color=color,
-                fill=True,
-                fill_color=color,
-                fill_opacity=0.7,
-                weight=2,
-                tooltip=folium.Tooltip(tooltip_html, max_width=300),
-            ).add_to(m)
-        
-        map_data = st_folium(m, width="100%", height=520, key="interactive_map")
-        
-        if map_data and map_data.get("last_object_clicked"):
-            clicked = map_data["last_object_clicked"]
-            lat = clicked.get("lat")
-            lon = clicked.get("lng")
-            
-            if lat and lon and not filtered_df.empty:
-                min_dist = float('inf')
-                nearest_idx = None
-                for idx, row in filtered_df.iterrows():
-                    dist = sqrt((row["lat"] - lat)**2 + (row["lon"] - lon)**2)
-                    if dist < min_dist:
-                        min_dist = dist
-                        nearest_idx = idx
-                if nearest_idx is not None:
-                    st.session_state.selected_id = filtered_df.iloc[nearest_idx]["id"]
-        
-        if not filtered_df.empty:
-            addresses_with_price = [
-                f"{row['address'][:50]} - {int(row['price']//1_000_000)} млн ₽" 
-                for _, row in filtered_df.iterrows()
-            ]
-            
-            current_index = 0
-            if st.session_state.selected_id is not None:
-                idx_list = filtered_df[filtered_df["id"] == st.session_state.selected_id].index
-                if len(idx_list) > 0:
-                    current_index = filtered_df.index.get_loc(idx_list[0])
-            
-            selected_address = st.selectbox(
-                "Или выберите объект из списка:", 
-                options=addresses_with_price,
-                index=current_index,
-                key="fallback_select"
-            )
-            
-            if selected_address:
-                selected_idx = addresses_with_price.index(selected_address)
-                new_id = filtered_df.iloc[selected_idx]["id"]
-                if new_id != st.session_state.selected_id:
-                    st.session_state.selected_id = new_id
-    
-    with col_card:
-        st.subheader("Карточка предложения")
-        
-        if st.session_state.selected_id is not None:
-            prop = filtered_df[filtered_df["id"] == st.session_state.selected_id]
-            
-            if not prop.empty:
-                prop = prop.iloc[0]
-                
-                st.markdown(f"### 📍 {prop['address']}")
-                
-                c1, c2, c3 = st.columns(3)
-                with c1:
-                    st.metric("💰 Цена", f"{int(prop['price']//1_000_000)} млн ₽")
-                with c2:
-                    st.metric("🛏️ Комнаты", f"{int(prop['rooms'])}" if prop['rooms'] else "-")
-                with c3:
-                    st.metric("📐 Площадь", f"{prop['area']:.1f} м²" if prop['area'] else "-")
-                
-                st.divider()
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown("**Характеристики**")
-                    st.write(f"📍 **Район:** {prop['district'] or '-'}")
-                    st.write(f"🏢 **Этаж:** {int(prop['floor']) if prop['floor'] else '-'} / {int(prop['total_floors']) if prop['total_floors'] else '-'}")
-                    st.write(f"🏛️ **Серия:** {prop['series'] or '-'}")
-                    st.write(f"📅 **Год:** {int(prop['year_built']) if prop['year_built'] else '-'}")
-                    st.write(f"🧱 **Стены:** {prop['wall_type'] or '-'}")
-                
-                with col2:
-                    st.markdown("**Удобства**")
-                    st.write(f"🔼 **Лифт:** {'Да' if prop['has_lift'] else 'Нет'}")
-                    st.write(f"🪟 **Балкон:** {'Да' if prop['has_balcony'] else 'Нет'}")
-                    st.write(f"⭐ **Рейтинг:** {int(prop['reputation_score']) if prop['reputation_score'] else '-'}")
-                    st.write(f"🚇 **Метро:** {int(prop['dist_metro_m'])} м" if prop['dist_metro_m'] else "🚇 **Метро:** -")
-                
-                st.divider()
-                
-                st.markdown("**Отзывы и проблемы**")
-                if prop['top_issues'] and prop['top_issues'] != 'нет данных':
-                    issues = [i.strip() for i in str(prop['top_issues']).split(',') if i.strip()]
-                    tags_html = "".join([
-                        f'<span style="background:#e0e7ff; color:#1e3a8a; padding:4px 8px; border-radius:6px; margin:2px; display:inline-block; font-size:0.85em;">⚠️ {tag}</span>' 
-                        for tag in issues
-                    ])
-                    st.markdown(f"<div style='line-height:1.8;'>{tags_html}</div>", unsafe_allow_html=True)
-                else:
-                    st.info("Нет данных о проблемах")
-                
-                st.divider()
-                
-                st.markdown("**Инфраструктура (радиус 1 км)**")
-                ic1, ic2, ic3 = st.columns(3)
-                with ic1:
-                    st.metric("🏫 Школы", int(prop['schools_1km']) if prop['schools_1km'] else "-")
-                with ic2:
-                    st.metric("🌲 Парки", int(prop['parks_1km']) if prop['parks_1km'] else "-")
-                with ic3:
-                    st.metric("🛍️ Магазины", int(prop['shops_1km']) if prop['shops_1km'] else "-")
-                
-                if prop['photo_url'] and prop['photo_url'] != 'None' and pd.notna(prop['photo_url']):
-                    st.divider()
-                    st.markdown("**Фото объекта**")
-                    st.image(prop['photo_url'], use_container_width=True)
-                
-                if prop['url'] and prop['url'] != 'None' and pd.notna(prop['url']):
-                    st.divider()
-                    st.link_button("Открыть объявление", prop['url'])
-            else:
-                st.warning("Объект не найден в фильтрации")
+    for _, row in filtered_df.iterrows():
+        if row["reputation_score"] > 70:
+            color = "green"
+        elif row["reputation_score"] > 50:
+            color = "orange"
         else:
-            st.info("Нажмите на маркер на карте или выберите из списка")
-    
-    st.caption("Прототип аналитической системы | Данные из Supabase | 2026")
-    
-    if st.sidebar.button("Обновить данные"):
-        st.cache_data.clear()
-        st.rerun()
+            color = "red"
         
-else:
-    st.info("Нет данных в таблице real_estate_spb")
+        folium.CircleMarker(
+            location=[row["lat"], row["lon"]],
+            radius=8,
+            color=color,
+            fill=True,
+            fill_opacity=0.7,
+            popup=f"{row['address']}<br>{row['price']//1000000} млн ₽<br>{row['rooms']} комн., {row['area']} м²",
+            tooltip=row['address']
+        ).add_to(m)
+    
+    map_data = st_folium(m, width="100%", height=500)
+    
+    if map_data and map_data.get("last_object_clicked"):
+        lat = map_data["last_object_clicked"]["lat"]
+        lng = map_data["last_object_clicked"]["lng"]
+        
+        # Ищем ближайший объект
+        min_dist = float("inf")
+        nearest_id = None
+        for _, row in filtered_df.iterrows():
+            dist = math.hypot(row["lat"] - lat, row["lon"] - lng)
+            if dist < min_dist:
+                min_dist = dist
+                nearest_id = row["id"]
+        if nearest_id:
+            st.session_state.selected_id = nearest_id
+    
+    if not filtered_df.empty:
+        options = [f"{row['address'][:40]} - {row['price']//1000000} млн" for _, row in filtered_df.iterrows()]
+        idx = 0
+        if st.session_state.selected_id:
+            ids = filtered_df["id"].tolist()
+            if st.session_state.selected_id in ids:
+                idx = ids.index(st.session_state.selected_id)
+        
+        selected = st.selectbox("Выберите объект", options, index=idx)
+        if selected:
+            st.session_state.selected_id = filtered_df.iloc[options.index(selected)]["id"]
+
+with col_card:
+    st.subheader("Карточка объекта")
+    
+    if st.session_state.selected_id:
+        prop = filtered_df[filtered_df["id"] == st.session_state.selected_id]
+        if not prop.empty:
+            p = prop.iloc[0]
+            
+            st.markdown(f"**{p['address']}**")
+            st.metric("Цена", f"{p['price']//1000000} млн ₽")
+            
+            c1, c2 = st.columns(2)
+            c1.metric("Комнаты", p['rooms'] if p['rooms'] else "-")
+            c2.metric("Площадь", f"{p['area']:.1f} м²" if p['area'] else "-")
+            
+            c1, c2 = st.columns(2)
+            c1.metric("Этаж", f"{p['floor']}/{p['total_floors']}" if p['floor'] else "-")
+            c2.metric("Рейтинг", p['reputation_score'] if p['reputation_score'] else "-")
+            
+            st.write(f"**Район:** {p['district'] or '-'}")
+            st.write(f"**Год постройки:** {p['year_built'] or '-'}")
+            st.write(f"**Серия:** {p['series'] or '-'}")
+            st.write(f"**Метро:** {p['dist_metro_m']} м" if p['dist_metro_m'] else "Метро: -")
+            
+            if p['photo_url'] and str(p['photo_url']) != 'nan':
+                st.image(p['photo_url'], use_container_width=True)
+            
+            if p['url'] and str(p['url']) != 'nan':
+                st.link_button("Открыть объявление", p['url'])
+        else:
+            st.info("Выберите объект на карте")
+    else:
+        st.info("Нажмите на маркер на карте")
