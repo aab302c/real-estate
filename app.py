@@ -125,6 +125,14 @@ with st.sidebar:
     st.header("Фильтры")
     
     min_rating = st.slider("Мин. рейтинг репутации", 0, 100, 0, key="rating")
+    st.subheader("Тип жилья")
+    selected_housing_types = st.multiselect(
+        "Выберите тип жилья (можно несколько):",
+        options=["Новостройка", "Вторичка"],
+        default=["Новостройка", "Вторичка"],
+        key="housing_multiselect"
+    )
+	
     min_price = float(df['price'].min())
     max_price = float(df['price'].max())
     budget_range = st.slider("Бюджет (млн ₽)", min_price/1e6, max_price/1e6, (min_price/1e6, max_price/1e6), key="budget")
@@ -190,6 +198,10 @@ filtered_df = df[
     (df['year_built'] >= year_range[0]) &
     (df['year_built'] <= year_range[1])
 ]
+
+# Фильтр по типу жилья
+if selected_housing_types:
+    filtered_df = filtered_df[filtered_df['housing_type'].isin(selected_housing_types)]
 # === КАРТА ===
 col_map, col_card = st.columns([2, 1])
 
