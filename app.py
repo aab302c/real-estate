@@ -24,7 +24,34 @@ def parse_address(full_address):
         return street, house
     return full_address, ""
 
-# === ДАННЫЕ (только несколько для примера, далее аналогично) ===
+# === ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ КООРДИНАТ ПО РАЙОНУ ===
+def get_coords_from_address(address):
+    """
+    Определяет координаты на основе района в адресе
+    """
+    district_coords = {
+        "Кировский": [59.8764, 30.2614],
+        "Калининский": [59.9975, 30.3968],
+        "Красногвардейский": [59.9639, 30.4998],
+        "Адмиралтейский": [59.9343, 30.3050],
+        "Центральный": [59.9343, 30.3351],
+        "Невский": [59.8731, 30.4885],
+        "Московский": [59.8528, 30.3228],
+        "Петроградский": [59.9639, 30.3115],
+        "Приморский": [60.0044, 30.2927],
+        "Василеостровский": [59.9417, 30.2756],
+        "Выборгский": [60.0036, 30.2919],
+        "Фрунзенский": [59.8961, 30.3675],
+        "Красносельский": [59.8745, 30.1394],
+        "Пушкинский": [59.7234, 30.4122],
+    }
+    
+    for district, coords in district_coords.items():
+        if district in address:
+            return coords
+    return [59.9343, 30.3351]  # центр СПб по умолчанию
+
+# === ДАННЫЕ ===
 buildings_data = [
     {"id": 1, "address": "Санкт-Петербург, р-н Кировский, Автово, м. Путиловская, улица Васи Алексеева, 14", "price": 18750000, "year_built": 1957, "reputation_score": 65, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "индивидуальный проект", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-ulica-vasi-alekseeva-2867778995-1.jpg", "top_issues": ["Хорошее расположение", "Требуется ремонт"], "dist_metro_m": 500, "schools_1km": 3, "parks_1km": 2, "shops_1km": 8},
     {"id": 2, "address": "Санкт-Петербург, р-н Калининский, Прометей, м. Гражданский проспект, Светлановский проспект, 109К1", "price": 14500000, "year_built": 1972, "reputation_score": 70, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-svetlanovskiy-prospekt-2886157144-1.jpg", "top_issues": ["Уютный двор", "Чистый подъезд"], "dist_metro_m": 400, "schools_1km": 4, "parks_1km": 3, "shops_1km": 12},
@@ -48,27 +75,10 @@ buildings_data = [
     {"id": 20, "address": "Санкт-Петербург, р-н Петроградский, Посадский, м. Горьковская, улица Куйбышева, 1/5", "price": 26900000, "year_built": 1955, "reputation_score": 80, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2871870239-1.jpg", "top_issues": ["Сталинка", "Хорошая планировка"], "dist_metro_m": 340, "schools_1km": 5, "parks_1km": 3, "shops_1km": 16},
 ]
 
-# Координаты для районов
-district_coords = {
-    "Кировский": [59.8764, 30.2614],
-    "Калининский": [59.9975, 30.3968],
-    "Красногвардейский": [59.9639, 30.4998],
-    "Адмиралтейский": [59.9343, 30.3050],
-    "Центральный": [59.9343, 30.3351],
-    "Невский": [59.8731, 30.4885],
-    "Московский": [59.8528, 30.3228],
-    "Петроградский": [59.9639, 30.3115],
-    "Приморский": [60.0044, 30.2927],
-    "Василеостровский": [59.9417, 30.2756],
-    "Выборгский": [60.0036, 30.2919],
-    "Фрунзенский": [59.8961, 30.3675],
-    "Красносельский": [59.8745, 30.1394],
-    "Пушкинский": [59.7234, 30.4122],
-}
-
-# Привязываем координаты и парсим адреса
+# === ОБРАБОТКА ДАННЫХ ===
 for building in buildings_data:
-    lat, lon = get_coords(building["address"])
+    # Определяем координаты
+    lat, lon = get_coords_from_address(building["address"])
     building["lat"] = lat
     building["lon"] = lon
     
@@ -80,6 +90,7 @@ for building in buildings_data:
     # Короткое название для отображения
     building["short_name"] = f"{street}, {house}"
     
+    # Цвет в зависимости от репутации
     if building["reputation_score"] >= 70:
         building["color"] = "green"
     elif building["reputation_score"] >= 50:
