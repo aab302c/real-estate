@@ -126,9 +126,9 @@ with st.sidebar:
     
     min_price = float(df['price'].min())
     max_price = float(df['price'].max())
-    budget_range = st.slider("💰 Бюджет (млн ₽)", min_price/1e6, max_price/1e6, (min_price/1e6, max_price/1e6), key="budget")
+    budget_range = st.slider("Бюджет (млн ₽)", min_price/1e6, max_price/1e6, (min_price/1e6, max_price/1e6), key="budget")
     
-    min_rating = st.slider("⭐ Мин. рейтинг репутации", 0, 100, 0, key="rating")
+    min_rating = st.slider("Мин. рейтинг репутации", 0, 100, 0, key="rating")
     
 
     st.subheader("Количество комнат")
@@ -153,7 +153,6 @@ if selected_rooms:
 col_map, col_card = st.columns([2, 1])
 
 with col_map:
-    st.subheader("🗺️ Карта объектов")
     
     m = folium.Map(location=[59.9343, 30.3351], zoom_start=11, tiles="OpenStreetMap")
     
@@ -282,9 +281,3 @@ with col_card:
     else:
         st.info("👆 Выберите объект на карте или из списка, чтобы открыть карточку.")
 
-# === СТАТИСТИКА ===
-with st.expander("📊 Текущие параметры фильтрации"):
-    st.write(f"💰 Бюджет: {budget_range[0]:.1f} - {budget_range[1]:.1f} млн ₽")
-    st.write(f"⭐ Мин. рейтинг: {min_rating}")
-    st.write(f"🛏️ Комнаты: {', '.join(map(str, selected_rooms)) if selected_rooms else 'любые'}")
-    st.write(f"📊 Найдено объектов: {len(filtered_df)}")
