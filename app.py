@@ -166,12 +166,21 @@ if selected_rooms:
 # === КАРТА ===
 col_map, col_card = st.columns([2, 1])
 
+import random
+
+def add_jitter(lat, lon, jitter=0.008):
+    """Добавляет случайное смещение к координатам, чтобы точки не накладывались"""
+    lat = lat + random.uniform(-jitter, jitter)
+    lon = lon + random.uniform(-jitter, jitter)
+    return lat, lon
+    
 with col_map:
     st.subheader("🗺️ Карта объектов")
     
     m = folium.Map(location=[59.9343, 30.3351], zoom_start=11, tiles="OpenStreetMap")
     
     for _, row in filtered_df.iterrows():
+        lat, lon = add_jitter(row['lat'], row['lon'])
         tooltip_text = f"""
         <b>{row['short_name']}</b><br>
         💰 {row['price']/1e6:.1f} млн ₽<br>
