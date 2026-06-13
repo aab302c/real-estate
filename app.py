@@ -89,27 +89,27 @@ buildings_data = [
 df = pd.DataFrame(buildings_data)
 
 # === ЗАГОЛОВОК ===
-st.title("🏠 Рынок жилой недвижимости СПб")
-st.caption("Прототип аналитической системы | СПбГЭТУ «ЛЭТИ» | 2026")
+st.title("Рынок жилой недвижимости Санкт-Петербурга")
+st.caption("Прототип аналитической системы | ФКТИ СПбГЭТУ «ЛЭТИ» | 2026")
 
 # === БОКОВАЯ ПАНЕЛЬ С ФИЛЬТРАМИ ===
 with st.sidebar:
-    st.header("📊 Фильтры")
+    st.header("Фильтры")
     
-    st.subheader("💰 Бюджет (млн ₽)")
+    st.subheader("Бюджет (млн ₽)")
     min_price = float(df['price'].min())
     max_price = float(df['price'].max())
     budget_range = st.slider("", min_price, max_price, (min_price, max_price), key="budget")
     
-    st.subheader("⭐ Мин. рейтинг репутации")
+    st.subheader("Мин. рейтинг репутации")
     min_rating = st.slider("", 0, 100, 0, key="rating")
     
-    st.subheader("🏗️ Год постройки")
+    st.subheader("Год постройки")
     min_year = int(df['year_built'].min())
     max_year = int(df['year_built'].max())
     year_range = st.slider("", min_year, max_year, (min_year, max_year), key="year")
     
-    st.subheader("🛏️ Количество комнат")
+    st.subheader("Количество комнат")
     col1, col2, col3 = st.columns(3)
     with col1:
         rooms_1 = st.checkbox("1", key="rooms_1")
@@ -157,7 +157,7 @@ with col_map:
         tooltip_text = f"""
         <b>{row['name']}</b><br>
         💰 {row['price']} млн ₽<br>
-        🛏️ {row['rooms']} комн. | 📐 {row['area']} м²<br>
+        🛏️ {row['rooms']} комн. |  {row['area']} м²<br>
         📅 {row['year_built']} г.
         """
         
@@ -213,7 +213,7 @@ with col_card:
         prop = filtered_df[filtered_df['id'] == selected_id].iloc[0]
         
         # Название и цена (без подзаголовка "Карточка предложения")
-        st.markdown(f"### {prop['name']}")
+        st.markdown(f"### 📍{prop['name']}")
         st.info(f"{prop['rooms']}-комн. | 📐 {prop['area']} м² | {prop['floor']}/{prop['total_floors']} эт. | 💰 {prop['price']} млн ₽")
         
         st.divider()
