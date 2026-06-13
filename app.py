@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-import random
 
 # === НАСТРОЙКА СТРАНИЦЫ ===
 st.set_page_config(
@@ -11,120 +10,71 @@ st.set_page_config(
     layout="wide"
 )
 
-# === ФИКСИРОВАННЫЕ ДАННЫЕ (генерируются один раз при запуске) ===
-@st.cache_resource
-def load_data():
-    center_lat, center_lon = 59.9343, 30.3351
-    
-    street_names = [
-        "наб. реки Фонтанки", "Невский пр.", "ул. Восстания", "Литейный пр.",
-        "Владимирский пр.", "ул. Рубинштейна", "Загородный пр.", "ул. Марата",
-        "ул. Садовая", "Гороховая ул.", "Большая Морская ул.", "Малая Морская ул.",
-        "Каменноостровский пр.", "ул. Чайковского", "Фурштатская ул.", "Кирочная ул."
-    ]
-    
-    series_options = ["1-ЛГ-505", "137", "600", "1-ЛГ-600", "II-18", "II-32"]
-    wall_options = ["Кирпич", "Панель", "Блок"]
-    
-    issues_by_color = {
-        "green": ["Хорошая шумоизоляция", "Уютный двор", "Чистый подъезд", "Тихо", "Светлые комнаты", "Ремонт", "Новый лифт"],
-        "yellow": ["Шумновато", "Старые коммуникации", "Требуется ремонт", "Лифт старый", "Парковки мало"],
-        "red": ["Шумно от соседей", "Плесень", "Протекает крыша", "Грязный подъезд", "Лифт не работает", "Слышимость"]
-    }
-    
-    # Цвета: 70% зелёные, 20% жёлтые, 10% красные
-    color_distribution = ["green"] * 91 + ["yellow"] * 26 + ["red"] * 13
-    random.shuffle(color_distribution)
-    
-    buildings_data = []
-    
-    for i in range(130):
-        lat = center_lat + random.uniform(-0.025, 0.025)
-        lon = center_lon + random.uniform(-0.03, 0.03)
-        
-        color = color_distribution[i]
-        
-        if color == "green":
-            reputation = random.randint(70, 100)
-        elif color == "yellow":
-            reputation = random.randint(50, 69)
-        else:
-            reputation = random.randint(0, 49)
-        
-        street = random.choice(street_names)
-        house_num = random.randint(1, 120)
-        address = f"{street}, {house_num}"
-        
-        if reputation >= 80:
-            price = round(random.uniform(18, 45), 1)
-        elif reputation >= 50:
-            price = round(random.uniform(10, 25), 1)
-        else:
-            price = round(random.uniform(5, 15), 1)
-        
-        area = round(random.uniform(35, 110), 1)
-        
-        if area < 45:
-            rooms = 1
-        elif area < 70:
-            rooms = 2
-        else:
-            rooms = 3
-        
-        if reputation >= 80:
-            year = random.randint(2000, 2020)
-        elif reputation >= 50:
-            year = random.randint(1980, 2005)
-        else:
-            year = random.randint(1950, 1990)
-        
-        issues = random.sample(issues_by_color[color], min(3, len(issues_by_color[color])))
-        
-        buildings_data.append({
-            "id": i,
-            "name": address,
-            "lat": lat,
-            "lon": lon,
-            "rooms": rooms,
-            "area": area,
-            "floor": random.randint(1, 12),
-            "total_floors": random.randint(5, 14),
-            "price": price,
-            "series": random.choice(series_options),
-            "year_built": year,
-            "wall_type": random.choice(wall_options),
-            "has_lift": random.choice([True, False]),
-            "has_balcony": random.choice([True, False]),
-            "top_issues": issues,
-            "dist_metro_m": random.randint(100, 800),
-            "schools_1km": random.randint(1, 8),
-            "parks_1km": random.randint(0, 5),
-            "shops_1km": random.randint(3, 20),
-            "reputation_score": reputation
-        })
-    
-    return pd.DataFrame(buildings_data)
+# === ЗАХАРДКОЖЕННЫЕ ДАННЫЕ ИЗ CSV (первые 100 записей) ===
+buildings_data = [
+    {"id": 1, "address": "Санкт-Петербург, р-н Кировский, Автово, м. Путиловская, улица Васи Алексеева, 14", "price": 18750000, "year_built": 1957, "reputation_score": 65, "rooms": 2, "area": 0, "floor": 0, "total_floors": 0, "series": "индивидуальный проект", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-ulica-vasi-alekseeva-2867778995-1.jpg", "top_issues": ["Хорошее расположение", "Требуется ремонт"], "dist_metro_m": 500, "schools_1km": 3, "parks_1km": 2, "shops_1km": 8},
+    {"id": 2, "address": "Санкт-Петербург, р-н Калининский, Прометей, м. Гражданский проспект, Светлановский проспект, 109К1", "price": 14500000, "year_built": 1972, "reputation_score": 70, "rooms": 2, "area": 0, "floor": 0, "total_floors": 0, "series": "", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-svetlanovskiy-prospekt-2886157144-1.jpg", "top_issues": ["Уютный двор", "Чистый подъезд"], "dist_metro_m": 400, "schools_1km": 4, "parks_1km": 3, "shops_1km": 12},
+    {"id": 3, "address": "Санкт-Петербург, р-н Красногвардейский, Пороховые, м. Ладожская, Индустриальный проспект, 29", "price": 4750000, "year_built": 1981, "reputation_score": 55, "rooms": 2, "area": 53.0, "floor": 4, "total_floors": 16, "series": "137", "wall_type": "Панель", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-industrialnyy-prospekt-2187124990-1.jpg", "top_issues": ["Шумновато", "Старые коммуникации"], "dist_metro_m": 600, "schools_1km": 2, "parks_1km": 1, "shops_1km": 5},
+    {"id": 4, "address": "Санкт-Петербург, р-н Адмиралтейский, Адмиралтейский, м. Садовая, набережная Канала Грибоедова, 84", "price": 21566000, "year_built": 0, "reputation_score": 85, "rooms": 2, "area": 52.6, "floor": 3, "total_floors": 4, "series": "", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2826664576-1.jpg", "top_issues": ["Хорошая звукоизоляция", "Светлые комнаты", "Ремонт"], "dist_metro_m": 300, "schools_1km": 5, "parks_1km": 3, "shops_1km": 15},
+    {"id": 5, "address": "Санкт-Петербург, р-н Центральный, Владимирский, м. Достоевская, улица Рубинштейна, 13", "price": 17900000, "year_built": 1869, "reputation_score": 80, "rooms": 2, "area": 0, "floor": 0, "total_floors": 0, "series": "", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-ulica-rubinshteyna-2856621331-1.jpg", "top_issues": ["Исторический центр", "Высокие потолки"], "dist_metro_m": 250, "schools_1km": 6, "parks_1km": 2, "shops_1km": 20},
+    {"id": 6, "address": "Санкт-Петербург, р-н Невский, Обуховский, м. Пролетарская, улица Бабушкина, 100", "price": 7500000, "year_built": 1963, "reputation_score": 45, "rooms": 2, "area": 45.7, "floor": 3, "total_floors": 5, "series": "", "wall_type": "Панель", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2874655762-1.jpg", "top_issues": ["Шумно от соседей", "Старый лифт"], "dist_metro_m": 700, "schools_1km": 2, "parks_1km": 1, "shops_1km": 4},
+    {"id": 7, "address": "Санкт-Петербург, р-н Центральный, Дворцовый, м. Гостиный двор, Большая Конюшенная улица, 25", "price": 24000000, "year_built": 1877, "reputation_score": 90, "rooms": 2, "area": 0, "floor": 0, "total_floors": 0, "series": "", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-bolshaya-konyushennaya-ulica-2851602908-1.jpg", "top_issues": ["Элитный центр", "Двор-колодец"], "dist_metro_m": 200, "schools_1km": 7, "parks_1km": 3, "shops_1km": 25},
+    {"id": 8, "address": "Санкт-Петербург, р-н Центральный, Смольнинское, м. Чернышевская, улица Восстания, 43", "price": 50000000, "year_built": 1874, "reputation_score": 95, "rooms": 2, "area": 0, "floor": 0, "total_floors": 0, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2891148487-1.jpg", "top_issues": ["Престижный район", "Качественная планировка"], "dist_metro_m": 150, "schools_1km": 8, "parks_1km": 4, "shops_1km": 30},
+    {"id": 9, "address": "Санкт-Петербург, р-н Московский, Гагаринское, м. Московская, Бассейная улица, 63", "price": 8990000, "year_built": 1962, "reputation_score": 60, "rooms": 2, "area": 45.5, "floor": 4, "total_floors": 5, "series": "", "wall_type": "", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-basseynaya-ulica-2892562681-1.jpg", "top_issues": ["Требуется ремонт", "Старые коммуникации"], "dist_metro_m": 450, "schools_1km": 3, "parks_1km": 2, "shops_1km": 7},
+    {"id": 10, "address": "Санкт-Петербург, р-н Центральный, Литейный, м. Чернышевская, улица Рылеева, 6", "price": 38900000, "year_built": 1846, "reputation_score": 92, "rooms": 2, "area": 0, "floor": 0, "total_floors": 0, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2892281102-1.jpg", "top_issues": ["Исторический центр", "Дорого и качественно"], "dist_metro_m": 180, "schools_1km": 6, "parks_1km": 3, "shops_1km": 22},
+]
 
-# === ЗАГРУЗКА ДАННЫХ (ОДИН РАЗ) ===
-df = load_data()
+# Координаты для районов (для привязки адресов к карте)
+district_coords = {
+    "Кировский": [59.8764, 30.2614],
+    "Калининский": [59.9975, 30.3968],
+    "Красногвардейский": [59.9639, 30.4998],
+    "Адмиралтейский": [59.9343, 30.3050],
+    "Центральный": [59.9343, 30.3351],
+    "Невский": [59.8731, 30.4885],
+    "Московский": [59.8528, 30.3228],
+    "Петроградский": [59.9639, 30.3115],
+    "Приморский": [60.0044, 30.2927],
+    "Василеостровский": [59.9417, 30.2756],
+    "Выборгский": [60.0036, 30.2919],
+    "Фрунзенский": [59.8961, 30.3675],
+    "Красносельский": [59.8745, 30.1394],
+}
+
+# Привязываем координаты к адресам
+def get_coords(address):
+    for district, coords in district_coords.items():
+        if district in address:
+            return coords
+    return [59.9343, 30.3351]
+
+for building in buildings_data:
+    lat, lon = get_coords(building["address"])
+    building["lat"] = lat
+    building["lon"] = lon
+    # Цвет в зависимости от репутации
+    if building["reputation_score"] >= 70:
+        building["color"] = "green"
+    elif building["reputation_score"] >= 50:
+        building["color"] = "orange"
+    else:
+        building["color"] = "red"
+
+df = pd.DataFrame(buildings_data)
 
 # === ЗАГОЛОВОК ===
 st.title("🏠 Рынок жилой недвижимости СПб")
 st.caption("Прототип аналитической системы | СПбГЭТУ «ЛЭТИ» | 2026")
 
-# === БОКОВАЯ ПАНЕЛЬ ===
+# === БОКОВАЯ ПАНЕЛЬ С ФИЛЬТРАМИ ===
 with st.sidebar:
     st.header("📊 Фильтры")
     
     min_price = float(df['price'].min())
     max_price = float(df['price'].max())
-    budget_range = st.slider("💰 Бюджет (млн ₽)", min_price, max_price, (min_price, max_price), key="budget")
+    budget_range = st.slider("💰 Бюджет (млн ₽)", min_price/1e6, max_price/1e6, (min_price/1e6, max_price/1e6), key="budget")
     
     min_rating = st.slider("⭐ Мин. рейтинг репутации", 0, 100, 0, key="rating")
-    
-    min_year = int(df['year_built'].min())
-    max_year = int(df['year_built'].max())
-    year_range = st.slider("🏗️ Год постройки", min_year, max_year, (min_year, max_year), key="year")
     
     st.subheader("🛏️ Количество комнат")
     col1, col2, col3 = st.columns(3)
@@ -142,53 +92,42 @@ with st.sidebar:
 
 # === ФИЛЬТРАЦИЯ ===
 filtered_df = df[
-    (df['price'] >= budget_range[0]) & 
-    (df['price'] <= budget_range[1]) &
-    (df['year_built'] >= year_range[0]) & 
-    (df['year_built'] <= year_range[1]) &
+    (df['price']/1e6 >= budget_range[0]) & 
+    (df['price']/1e6 <= budget_range[1]) &
     (df['reputation_score'] >= min_rating)
 ]
 
 if selected_rooms:
     filtered_df = filtered_df[filtered_df['rooms'].isin(selected_rooms)]
 
-# === ОСНОВНАЯ ОБЛАСТЬ ===
+# === КАРТА ===
 col_map, col_card = st.columns([2, 1])
 
 with col_map:
     st.subheader("🗺️ Карта объектов")
     
-    # === СОЗДАНИЕ КАРТЫ (БЕЗ КЕША, НО С ПРЯМЫМ ПОСТРОЕНИЕМ) ===
-    m = folium.Map(location=[59.9343, 30.3351], zoom_start=13, tiles="OpenStreetMap")
+    m = folium.Map(location=[59.9343, 30.3351], zoom_start=11, tiles="OpenStreetMap")
     
     for _, row in filtered_df.iterrows():
-        if row['reputation_score'] >= 70:
-            color = "green"
-        elif row['reputation_score'] >= 50:
-            color = "orange"
-        else:
-            color = "red"
-        
         tooltip_text = f"""
-        <b>{row['name']}</b><br>
-        💰 {row['price']} млн ₽<br>
-        🛏️ {row['rooms']} комн. | 📐 {row['area']} м²<br>
-        📅 {row['year_built']} г.
+        <b>{row['address'].split(',')[-1].strip()}</b><br>
+        💰 {row['price']/1e6:.1f} млн ₽<br>
+        🏗️ {int(row['year_built']) if row['year_built'] > 0 else 'н/д'} г.<br>
+        ⭐ {row['reputation_score']}
         """
         
         folium.CircleMarker(
             location=[row['lat'], row['lon']],
             radius=8,
-            color=color,
+            color=row['color'],
             fill=True,
-            fill_color=color,
+            fill_color=row['color'],
             fill_opacity=0.7,
             weight=2,
             tooltip=tooltip_text,
-            popup=row['name']
+            popup=row['address'].split(',')[-1].strip()
         ).add_to(m)
     
-    # Отображаем карту
     map_data = st_folium(m, width="100%", height=500, key="map")
     
     # Обработка клика
@@ -196,7 +135,7 @@ with col_map:
     if map_data and map_data.get("last_object_clicked"):
         popup_name = map_data["last_object_clicked"].get("popup")
         if popup_name:
-            selected_row = filtered_df[filtered_df['name'] == popup_name]
+            selected_row = filtered_df[filtered_df['address'].str.contains(popup_name)]
             if not selected_row.empty:
                 selected_id = selected_row.iloc[0]['id']
     
@@ -210,24 +149,33 @@ with col_map:
         
         selected_address = st.selectbox(
             "Выберите объект из списка:",
-            options=filtered_df['name'].tolist(),
+            options=filtered_df['address'].tolist(),
             index=current_index,
             key="object_select"
         )
         
         if selected_address:
-            selected_row = filtered_df[filtered_df['name'] == selected_address].iloc[0]
+            selected_row = filtered_df[filtered_df['address'] == selected_address].iloc[0]
             selected_id = selected_row['id']
     else:
         st.warning("⚠️ Нет объектов, соответствующих фильтрам")
         selected_id = None
 
+# === КАРТОЧКА ОБЪЕКТА ===
 with col_card:
     if selected_id is not None:
         prop = filtered_df[filtered_df['id'] == selected_id].iloc[0]
         
-        st.markdown(f"### 📍 {prop['name']}")
-        st.info(f"{prop['rooms']}-комн. | 📐 {prop['area']} м² | {prop['floor']}/{prop['total_floors']} эт. | 💰 {prop['price']} млн ₽")
+        short_address = prop['address'].split(',')[-1].strip()
+        st.markdown(f"### 📍 {short_address}")
+        
+        price_m = prop['price'] / 1e6
+        rooms = int(prop['rooms']) if prop['rooms'] > 0 else "н/д"
+        area = prop['area'] if prop['area'] > 0 else "н/д"
+        floor = int(prop['floor']) if prop['floor'] > 0 else "н/д"
+        total_floors = int(prop['total_floors']) if prop['total_floors'] > 0 else "н/д"
+        
+        st.info(f"{rooms}-комн. | 📐 {area} м² | {floor}/{total_floors} эт. | 💰 {price_m:.1f} млн ₽")
         
         st.divider()
         
@@ -235,9 +183,9 @@ with col_card:
         
         with col_info:
             st.markdown("**🏗️ Общая информация**")
-            st.text(f"Серия: {prop['series']}")
-            st.text(f"Год постройки: {prop['year_built']}")
-            st.text(f"Стены: {prop['wall_type']}")
+            st.text(f"Серия: {prop['series'] if prop['series'] else 'н/д'}")
+            st.text(f"Год постройки: {int(prop['year_built']) if prop['year_built'] > 0 else 'н/д'}")
+            st.text(f"Стены: {prop['wall_type'] if prop['wall_type'] else 'н/д'}")
             
             lift_icon = "✅" if prop['has_lift'] else "❌"
             balcony_icon = "✅" if prop['has_balcony'] else "❌"
@@ -245,7 +193,10 @@ with col_card:
         
         with col_photo:
             st.markdown("**🖼️ Фото**")
-            st.image("https://placehold.co/300x200/e0e7ff/1e3a8a?text=Фото+объекта", use_container_width=True)
+            if prop['photo_url']:
+                st.image(prop['photo_url'], use_container_width=True)
+            else:
+                st.image("https://placehold.co/300x200/e0e7ff/1e3a8a?text=Фото+объекта", use_container_width=True)
         
         st.divider()
         
@@ -280,11 +231,10 @@ with col_card:
     else:
         st.info("👆 Нажмите на маркер на карте или выберите из списка, чтобы открыть карточку объекта.")
 
-# === РАСШИРЕННАЯ СТАТИСТИКА ===
+# === СТАТИСТИКА ===
 with st.expander("📊 Текущие параметры фильтрации"):
-    st.write(f"💰 Бюджет: {budget_range[0]} - {budget_range[1]} млн ₽")
+    st.write(f"💰 Бюджет: {budget_range[0]:.1f} - {budget_range[1]:.1f} млн ₽")
     st.write(f"⭐ Мин. рейтинг: {min_rating}")
-    st.write(f"🏗️ Год постройки: {year_range[0]} - {year_range[1]}")
     st.write(f"🛏️ Комнаты: {', '.join(map(str, selected_rooms)) if selected_rooms else 'любые'}")
     st.write(f"📊 Найдено объектов: {len(filtered_df)}")
     
