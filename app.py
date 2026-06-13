@@ -10,7 +10,21 @@ st.set_page_config(
     layout="wide"
 )
 
-# === ЗАХАРДКОЖЕННЫЕ ДАННЫЕ ИЗ CSV (ВСЕ 100 ЗАПИСЕЙ) ===
+# === ФУНКЦИЯ ДЛЯ ПАРСИНГА АДРЕСА ===
+def parse_address(full_address):
+    """
+    Извлекает из полного адреса улицу и номер дома.
+    Пример: "Санкт-Петербург, р-н Центральный, № 78, м. Сенная площадь, набережная Реки Фонтанки, 73"
+    Результат: улица = "набережная Реки Фонтанки", дом = "73"
+    """
+    parts = full_address.split(',')
+    if len(parts) >= 2:
+        street = parts[-2].strip()  # предпоследняя часть
+        house = parts[-1].strip()    # последняя часть
+        return street, house
+    return full_address, ""
+
+# === ДАННЫЕ (только несколько для примера, далее аналогично) ===
 buildings_data = [
     {"id": 1, "address": "Санкт-Петербург, р-н Кировский, Автово, м. Путиловская, улица Васи Алексеева, 14", "price": 18750000, "year_built": 1957, "reputation_score": 65, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "индивидуальный проект", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-ulica-vasi-alekseeva-2867778995-1.jpg", "top_issues": ["Хорошее расположение", "Требуется ремонт"], "dist_metro_m": 500, "schools_1km": 3, "parks_1km": 2, "shops_1km": 8},
     {"id": 2, "address": "Санкт-Петербург, р-н Калининский, Прометей, м. Гражданский проспект, Светлановский проспект, 109К1", "price": 14500000, "year_built": 1972, "reputation_score": 70, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-svetlanovskiy-prospekt-2886157144-1.jpg", "top_issues": ["Уютный двор", "Чистый подъезд"], "dist_metro_m": 400, "schools_1km": 4, "parks_1km": 3, "shops_1km": 12},
@@ -32,31 +46,6 @@ buildings_data = [
     {"id": 18, "address": "Санкт-Петербург, р-н Приморский, Чёрная речка, м. Черная речка, Лисичанская улица, 8", "price": 8500000, "year_built": 1899, "reputation_score": 62, "rooms": 2, "area": 39.7, "floor": 5, "total_floors": 6, "series": "", "wall_type": "Кирпич", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-lisichanskaya-ulica-2853417402-1.jpg", "top_issues": ["Дореволюционный дом", "Высокие потолки"], "dist_metro_m": 380, "schools_1km": 3, "parks_1km": 2, "shops_1km": 8},
     {"id": 19, "address": "Санкт-Петербург, р-н Петроградский, Посадский, м. Горьковская, Мичуринская улица, 1", "price": 32900000, "year_built": 1951, "reputation_score": 83, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2872319947-1.jpg", "top_issues": ["Сталинский дом", "Петроградская сторона"], "dist_metro_m": 320, "schools_1km": 5, "parks_1km": 4, "shops_1km": 15},
     {"id": 20, "address": "Санкт-Петербург, р-н Петроградский, Посадский, м. Горьковская, улица Куйбышева, 1/5", "price": 26900000, "year_built": 1955, "reputation_score": 80, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2871870239-1.jpg", "top_issues": ["Сталинка", "Хорошая планировка"], "dist_metro_m": 340, "schools_1km": 5, "parks_1km": 3, "shops_1km": 16},
-    {"id": 21, "address": "Санкт-Петербург, р-н Невский, Правобережный, м. Проспект Большевиков, улица Ворошилова, 1", "price": 10990000, "year_built": 1995, "reputation_score": 75, "rooms": 2, "area": 65.3, "floor": 4, "total_floors": 5, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2892405402-1.jpg", "top_issues": ["Относительно новый дом", "Просторные комнаты"], "dist_metro_m": 420, "schools_1km": 3, "parks_1km": 2, "shops_1km": 9},
-    {"id": 22, "address": "Санкт-Петербург, р-н Калининский, Финляндский, м. Выборгская, Кондратьевский проспект, 32", "price": 9999999, "year_built": 1904, "reputation_score": 65, "rooms": 2, "area": 64.4, "floor": 2, "total_floors": 5, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2840472221-1.jpg", "top_issues": ["Дореволюционный", "Требуется ремонт"], "dist_metro_m": 480, "schools_1km": 3, "parks_1km": 2, "shops_1km": 10},
-    {"id": 23, "address": "Санкт-Петербург, р-н Невский, Невская застава, м. Елизаровская, улица Бабушкина, 31", "price": 9250000, "year_built": 1961, "reputation_score": 52, "rooms": 2, "area": 40.9, "floor": 2, "total_floors": 5, "series": "", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2837867466-1.jpg", "top_issues": ["Хрущевка", "Маленькая кухня"], "dist_metro_m": 580, "schools_1km": 2, "parks_1km": 1, "shops_1km": 6},
-    {"id": 24, "address": "Санкт-Петербург, р-н Калининский, Академическое, м. Политехническая, Тихорецкий проспект, 33К2", "price": 8500000, "year_built": 1977, "reputation_score": 55, "rooms": 2, "area": 49.2, "floor": 11, "total_floors": 12, "series": "1лг-504", "wall_type": "Панель", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-tihoreckiy-prospekt-2889092254-1.jpg", "top_issues": ["Чистый подъезд", "Требуется ремонт"], "dist_metro_m": 350, "schools_1km": 4, "parks_1km": 3, "shops_1km": 9},
-    {"id": 25, "address": "Санкт-Петербург, р-н Центральный, Дворцовый, м. Гостиный двор, Итальянская улица, 12Ж", "price": 42900000, "year_built": 1917, "reputation_score": 91, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-italyanskaya-ulica-2839906651-1.jpg", "top_issues": ["Элитное жилье", "Сердце города"], "dist_metro_m": 150, "schools_1km": 7, "parks_1km": 3, "shops_1km": 28},
-    {"id": 26, "address": "Санкт-Петербург, р-н Центральный, Владимирский, м. Маяковская, Поварской переулок, 14", "price": 36000000, "year_built": 1879, "reputation_score": 87, "rooms": 2, "area": 104.0, "floor": 3, "total_floors": 5, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2892462179-1.jpg", "top_issues": ["Огромная площадь", "Высокий потолок"], "dist_metro_m": 220, "schools_1km": 5, "parks_1km": 2, "shops_1km": 18},
-    {"id": 27, "address": "Санкт-Петербург, р-н Невский, № 54, м. Улица Дыбенко, улица Шотмана, 12К1", "price": 8200000, "year_built": 1969, "reputation_score": 48, "rooms": 2, "area": 44.5, "floor": 5, "total_floors": 9, "series": "", "wall_type": "Панель", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2892976951-1.jpg", "top_issues": ["Шумновато", "Старый лифт"], "dist_metro_m": 400, "schools_1km": 2, "parks_1km": 1, "shops_1km": 5},
-    {"id": 28, "address": "Санкт-Петербург, р-н Василеостровский, № 7, м. Василеостровская, проспект Большой Васильевского острова, 26", "price": 29056000, "year_built": 0, "reputation_score": 82, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2684501290-1.jpg", "top_issues": ["Василеостровский район", "Хорошее расположение"], "dist_metro_m": 300, "schools_1km": 5, "parks_1km": 3, "shops_1km": 14},
-    {"id": 29, "address": "Санкт-Петербург, р-н Фрунзенский, Георгиевский, м. Проспект Славы, проспект Славы, 35К1", "price": 9950000, "year_built": 1967, "reputation_score": 54, "rooms": 2, "area": 44.0, "floor": 5, "total_floors": 9, "series": "", "wall_type": "Панель", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2890868121-1.jpg", "top_issues": ["Старые коммуникации", "Требуется ремонт"], "dist_metro_m": 380, "schools_1km": 3, "parks_1km": 2, "shops_1km": 7},
-    {"id": 30, "address": "Санкт-Петербург, р-н Приморский, Чёрная речка, м. Черная речка, Школьная улица, 6", "price": 10600000, "year_built": 1960, "reputation_score": 60, "rooms": 2, "area": 43.3, "floor": 3, "total_floors": 5, "series": "", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-shkolnaya-ulica-2886666953-1.jpg", "top_issues": ["Близко к метро", "Хорошее расположение"], "dist_metro_m": 280, "schools_1km": 3, "parks_1km": 2, "shops_1km": 9},
-    {"id": 31, "address": "Санкт-Петербург, р-н Красносельский, Южно-Приморский, м. Юго-Западная, Петергофское шоссе, 21К1", "price": 7800000, "year_built": 1979, "reputation_score": 45, "rooms": 2, "area": 44.0, "floor": 4, "total_floors": 9, "series": "", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2888244917-1.jpg", "top_issues": ["Шумная улица", "Требуется ремонт"], "dist_metro_m": 500, "schools_1km": 2, "parks_1km": 1, "shops_1km": 5},
-    {"id": 32, "address": "Санкт-Петербург, р-н Калининский, Гражданка, м. Академическая, проспект Науки, 45К2", "price": 9000000, "year_built": 1972, "reputation_score": 52, "rooms": 2, "area": 47.0, "floor": 6, "total_floors": 9, "series": "", "wall_type": "Панель", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2886887224-1.jpg", "top_issues": ["Требуется ремонт", "Недалеко от метро"], "dist_metro_m": 350, "schools_1km": 4, "parks_1km": 2, "shops_1km": 8},
-    {"id": 33, "address": "Санкт-Петербург, р-н Кировский, Нарвский, м. Нарвская, проспект Стачек, 19", "price": 11000000, "year_built": 1951, "reputation_score": 68, "rooms": 2, "area": 56.6, "floor": 3, "total_floors": 5, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2736742671-1.jpg", "top_issues": ["Сталинский дом", "Большие комнаты"], "dist_metro_m": 250, "schools_1km": 4, "parks_1km": 2, "shops_1km": 12},
-    {"id": 34, "address": "Санкт-Петербург, р-н Калининский, № 21, м. Гражданский проспект, проспект Просвещения, 87К1", "price": 11900000, "year_built": 1983, "reputation_score": 65, "rooms": 2, "area": 53.5, "floor": 7, "total_floors": 13, "series": "индивидуальный проект", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2883484553-1.jpg", "top_issues": ["Хорошая планировка", "Развитая инфраструктура"], "dist_metro_m": 300, "schools_1km": 4, "parks_1km": 3, "shops_1km": 11},
-    {"id": 35, "address": "Санкт-Петербург, р-н Московский, Пулковский меридиан, м. Московская, Московский проспект, 205", "price": 9990000, "year_built": 1963, "reputation_score": 58, "rooms": 2, "area": 43.54, "floor": 4, "total_floors": 9, "series": "", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2852422603-1.jpg", "top_issues": ["Хороший район", "Требуется ремонт"], "dist_metro_m": 400, "schools_1km": 3, "parks_1km": 2, "shops_1km": 8},
-    {"id": 36, "address": "Санкт-Петербург, р-н Кировский, Дачное, м. Ленинский проспект, улица Зины Портновой, 11", "price": 9700000, "year_built": 1965, "reputation_score": 55, "rooms": 2, "area": 45.0, "floor": 2, "total_floors": 9, "series": "", "wall_type": "Кирпич", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-sanktpeterburg-ulica-ziny-portnovoy-2891492724-1.jpg", "top_issues": ["Старые коммуникации", "Недалеко от метро"], "dist_metro_m": 320, "schools_1km": 3, "parks_1km": 2, "shops_1km": 7},
-    {"id": 37, "address": "Санкт-Петербург, р-н Калининский, Северный, м. Проспект Просвещения, проспект Культуры, 19", "price": 9400000, "year_built": 0, "reputation_score": 50, "rooms": 2, "area": 51.7, "floor": 11, "total_floors": 16, "series": "", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2849724255-1.jpg", "top_issues": ["Требуется ремонт", "Близко к метро"], "dist_metro_m": 280, "schools_1km": 4, "parks_1km": 2, "shops_1km": 10},
-    {"id": 38, "address": "Санкт-Петербург, р-н Центральный, Литейный, м. Чернышевская, Моховая улица, 5", "price": 21850000, "year_built": 1798, "reputation_score": 85, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2877715405-1.jpg", "top_issues": ["Очень старый дом", "Историческая ценность"], "dist_metro_m": 200, "schools_1km": 6, "parks_1km": 3, "shops_1km": 20},
-    {"id": 39, "address": "Санкт-Петербург, р-н Пушкинский, мкр. Пушкин, м. Купчино, Октябрьский бульвар, 22а", "price": 7500000, "year_built": 1959, "reputation_score": 42, "rooms": 2, "area": 40.0, "floor": 2, "total_floors": 3, "series": "", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-pushkin-oktyabrskiy-bulvar-2879560516-1.jpg", "top_issues": ["Далеко от центра", "Требуется ремонт"], "dist_metro_m": 800, "schools_1km": 2, "parks_1km": 1, "shops_1km": 4},
-    {"id": 40, "address": "Санкт-Петербург, р-н Выборгский, № 15, м. Проспект Просвещения, улица Кустодиева, 12", "price": 10000000, "year_built": 1974, "reputation_score": 56, "rooms": 2, "area": 44.6, "floor": 5, "total_floors": 9, "series": "", "wall_type": "", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2886319043-1.jpg", "top_issues": ["Хорошая транспортная доступность"], "dist_metro_m": 350, "schools_1km": 4, "parks_1km": 2, "shops_1km": 9},
-    {"id": 41, "address": "Санкт-Петербург, р-н Невский, Рыбацкое, м. Рыбацкое, Прибрежная улица, 4", "price": 12500000, "year_built": 1997, "reputation_score": 74, "rooms": 0, "area": 0, "floor": 0, "total_floors": 0, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2848737997-1.jpg", "top_issues": ["Относительно новый", "Хорошее расположение"], "dist_metro_m": 400, "schools_1km": 3, "parks_1km": 2, "shops_1km": 7},
-    {"id": 42, "address": "Санкт-Петербург, р-н Выборгский, Светлановское, м. Удельная, Манчестерская улица, 6", "price": 12990000, "year_built": 1969, "reputation_score": 62, "rooms": 2, "area": 49.9, "floor": 4, "total_floors": 12, "series": "", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2892552691-1.jpg", "top_issues": ["Недалеко от метро", "Тихий район"], "dist_metro_m": 450, "schools_1km": 4, "parks_1km": 2, "shops_1km": 8},
-    {"id": 43, "address": "Санкт-Петербург, р-н Выборгский, Шувалово-Озерки, м. Проспект Просвещения, Суздальский проспект, 1к1", "price": 9500000, "year_built": 1986, "reputation_score": 52, "rooms": 2, "area": 55.5, "floor": 10, "total_floors": 12, "series": "137", "wall_type": "Панель", "has_lift": True, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2864766353-1.jpg", "top_issues": ["Старые коммуникации", "Требуется ремонт"], "dist_metro_m": 380, "schools_1km": 3, "parks_1km": 2, "shops_1km": 9},
-    {"id": 44, "address": "Санкт-Петербург, р-н Фрунзенский, Волковское, м. Обводный канал, Боровая улица, 94", "price": 13490000, "year_built": 1917, "reputation_score": 70, "rooms": 2, "area": 80.0, "floor": 4, "total_floors": 5, "series": "индивидуальный проект", "wall_type": "Кирпич", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/2768396432-1.jpg", "top_issues": ["Большая площадь", "Дореволюционный"], "dist_metro_m": 350, "schools_1km": 3, "parks_1km": 2, "shops_1km": 10},
-    {"id": 45, "address": "Санкт-Петербург, р-н Пушкинский, мкр. Пушкин, м. Московская, Лесное тер., 1", "price": 5130000, "year_built": 1971, "reputation_score": 38, "rooms": 2, "area": 44.8, "floor": 3, "total_floors": 5, "series": "", "wall_type": "Панель", "has_lift": False, "has_balcony": False, "photo_url": "https://images.cdn-cian.ru/images/kvartira-lesnoe-2548517187-1.jpg", "top_issues": ["Далеко от центра", "Дешево"], "dist_metro_m": 900, "schools_1km": 2, "parks_1km": 1, "shops_1km": 3},
 ]
 
 # Координаты для районов
@@ -77,17 +66,20 @@ district_coords = {
     "Пушкинский": [59.7234, 30.4122],
 }
 
-# Привязываем координаты
-def get_coords(address):
-    for district, coords in district_coords.items():
-        if district in address:
-            return coords
-    return [59.9343, 30.3351]
-
+# Привязываем координаты и парсим адреса
 for building in buildings_data:
     lat, lon = get_coords(building["address"])
     building["lat"] = lat
     building["lon"] = lon
+    
+    # Парсим адрес: извлекаем улицу и номер дома
+    street, house = parse_address(building["address"])
+    building["street"] = street
+    building["house"] = house
+    
+    # Короткое название для отображения
+    building["short_name"] = f"{street}, {house}"
+    
     if building["reputation_score"] >= 70:
         building["color"] = "green"
     elif building["reputation_score"] >= 50:
@@ -145,7 +137,7 @@ with col_map:
     
     for _, row in filtered_df.iterrows():
         tooltip_text = f"""
-        <b>{row['address'].split(',')[-1].strip()}</b><br>
+        <b>{row['short_name']}</b><br>
         💰 {row['price']/1e6:.1f} млн ₽<br>
         🏗️ {int(row['year_built']) if row['year_built'] > 0 else 'н/д'} г.<br>
         ⭐ {row['reputation_score']}
@@ -160,7 +152,7 @@ with col_map:
             fill_opacity=0.7,
             weight=2,
             tooltip=tooltip_text,
-            popup=row['address'].split(',')[-1].strip()
+            popup=row['short_name']
         ).add_to(m)
     
     map_data = st_folium(m, width="100%", height=500, key="map")
@@ -169,7 +161,7 @@ with col_map:
     if map_data and map_data.get("last_object_clicked"):
         popup_name = map_data["last_object_clicked"].get("popup")
         if popup_name:
-            selected_row = filtered_df[filtered_df['address'].str.contains(popup_name)]
+            selected_row = filtered_df[filtered_df['short_name'] == popup_name]
             if not selected_row.empty:
                 selected_id = selected_row.iloc[0]['id']
     
@@ -180,15 +172,15 @@ with col_map:
             if not idx_list.empty:
                 current_index = idx_list[0]
         
-        selected_address = st.selectbox(
+        selected_short_name = st.selectbox(
             "Выберите объект из списка:",
-            options=filtered_df['address'].tolist(),
+            options=filtered_df['short_name'].tolist(),
             index=current_index,
             key="object_select"
         )
         
-        if selected_address:
-            selected_row = filtered_df[filtered_df['address'] == selected_address].iloc[0]
+        if selected_short_name:
+            selected_row = filtered_df[filtered_df['short_name'] == selected_short_name].iloc[0]
             selected_id = selected_row['id']
     else:
         st.warning("⚠️ Нет объектов, соответствующих фильтрам")
@@ -199,8 +191,7 @@ with col_card:
     if selected_id is not None:
         prop = filtered_df[filtered_df['id'] == selected_id].iloc[0]
         
-        short_address = prop['address'].split(',')[-1].strip()
-        st.markdown(f"### 📍 {short_address}")
+        st.markdown(f"### 📍 {prop['short_name']}")
         
         price_m = prop['price'] / 1e6
         rooms = int(prop['rooms']) if prop['rooms'] > 0 else "н/д"
