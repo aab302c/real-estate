@@ -305,3 +305,9 @@ with st.expander("📊 Текущие параметры фильтрации"):
         st.write(f"🟢 Зелёных: {green} ({green/len(filtered_df)*100:.0f}%)")
         st.write(f"🟡 Жёлтых: {yellow} ({yellow/len(filtered_df)*100:.0f}%)")
         st.write(f"🔴 Красных: {red} ({red/len(filtered_df)*100:.0f}%)")
+# === ДИАГНОСТИКА ===
+st.write("### Диагностика")
+st.write(f"Всего объектов в filtered_df: {len(filtered_df)}")
+if not filtered_df.empty:
+    st.write("Пример координат первых 3 объектов:")
+    st.write(filtered_df[['short_name', 'lat', 'lon', 'color']].head(3))
