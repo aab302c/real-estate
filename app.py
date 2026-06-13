@@ -141,6 +141,12 @@ with st.sidebar:
     )
 
     st.subheader("🏢 Этаж")
+    floor_type = st.radio(
+        "Выберите тип этажа:",
+        options=["Любой", "Не первый", "Не последний", "Только первый", "Только последний"],
+        index=0,
+        key="floor_type"
+    )
     floor_min = st.number_input("Этаж от:", min_value=1, max_value=25, value=1, key="floor_min")
     floor_max = st.number_input("Этаж до:", min_value=1, max_value=25, value=25, key="floor_max")
 	
