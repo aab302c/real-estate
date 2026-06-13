@@ -2,163 +2,251 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-from sqlalchemy import create_engine
-import math
+from PIL import Image
+import io
+import base64
 
-st.set_page_config(layout="wide", page_title="Аналитика Недвижимости СПб")
-st.title("Рынок жилой недвижимости СПб")
+# === НАСТРОЙКА СТРАНИЦЫ ===
+st.set_page_config(
+    page_title="Рынок жилой недвижимости СПб",
+    page_icon="🏠",
+    layout="wide"
+)
 
-SUPABASE_URL = 'postgresql://postgres.mxkmpveociwhuyasdkyf:Vjnjhjkf_2024!@aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require'
+# === ЗАГОЛОВОК ===
+st.title("🏠 Рынок жилой недвижимости СПб")
+st.caption("Прототип аналитической системы | СПбГЭТУ «ЛЭТИ» | 2026")
 
-@st.cache_data
-def load_data():
-    engine = create_engine(SUPABASE_URL)
-    df = pd.read_sql("SELECT * FROM real_estate_spb", engine)
+# === БОКОВАЯ ПАНЕЛЬ С ФИЛЬТРАМИ ===
+with st.sidebar:
+    st.header("📊 Фильтры")
     
-    df["price"] = pd.to_numeric(df["price"], errors="coerce")
-    df["area"] = pd.to_numeric(df["area"], errors="coerce")
-    df["reputation_score"] = pd.to_numeric(df["reputation_score"], errors="coerce")
-    df = df.dropna(subset=["lat", "lon"])
-    return df
+    # Бюджет
+    st.subheader("💰 Бюджет (млн ₽)")
+    budget_range = st.slider("", 6, 42, (6, 42), key="budget")
+    
+    # Мин. рейтинг репутации
+    st.subheader("⭐ Мин. рейтинг репутации")
+    min_rating = st.slider("", 0, 100, 0, key="rating")
+    
+    # Год постройки
+    st.subheader("🏗️ Год постройки")
+    year_range = st.slider("", 1972, 1998, (1972, 1998), key="year")
+    
+    # Количество комнат
+    st.subheader("🛏️ Количество комнат")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        rooms_1 = st.checkbox("1", key="rooms_1")
+    with col2:
+        rooms_2 = st.checkbox("2", key="rooms_2")
+    with col3:
+        rooms_3 = st.checkbox("3", key="rooms_3")
+    
+    selected_rooms = []
+    if rooms_1: selected_rooms.append(1)
+    if rooms_2: selected_rooms.append(2)
+    if rooms_3: selected_rooms.append(3)
 
-df = load_data()
 
-if df.empty:
-    st.error("Нет данных с координатами")
-    st.stop()
+# === ДАННЫЕ ДЛЯ ДЕМОНСТРАЦИИ ===
+# Тестовые данные (в реальном приложении загружаются из Supabase)
+buildings_data = [
+    {
+        "id": 1,
+        "name": "наб. реки Фонтанки, д. 45",
+        "address": "наб. реки Фонтанки, д. 45",
+        "lat": 59.9343,
+        "lon": 30.3351,
+        "rooms": 2,
+        "area": 65.0,
+        "floor": 4,
+        "total_floors": 9,
+        "price": 18.5,
+        "series": "137 серия",
+        "year_built": 1985,
+        "wall_type": "Кирпич",
+        "has_lift": False,
+        "has_balcony": False,
+        "photo_url": None,
+        "top_issues": ["Шумоизоляция", "Старый лифт", "Чистый подъезд"],
+        "dist_metro_m": 350,
+        "schools_1km": 4,
+        "parks_1km": 2,
+        "shops_1km": 12
+    },
+    {
+        "id": 2,
+        "name": "Невский пр., д. 100",
+        "address": "Невский пр., д. 100",
+        "lat": 59.9311,
+        "lon": 30.3609,
+        "rooms": 3,
+        "area": 85.0,
+        "floor": 7,
+        "total_floors": 12,
+        "price": 32.5,
+        "series": "1-ЛГ-505",
+        "year_built": 1955,
+        "wall_type": "Кирпич",
+        "has_lift": True,
+        "has_balcony": True,
+        "photo_url": None,
+        "top_issues": ["Хорошая звукоизоляция", "Просторные комнаты", "Двор-колодец"],
+        "dist_metro_m": 200,
+        "schools_1km": 5,
+        "parks_1km": 3,
+        "shops_1km": 25
+    },
+    {
+        "id": 3,
+        "name": "ул. Восстания, д. 10",
+        "address": "ул. Восстания, д. 10",
+        "lat": 59.9317,
+        "lon": 30.3605,
+        "rooms": 1,
+        "area": 45.0,
+        "floor": 3,
+        "total_floors": 7,
+        "price": 11.2,
+        "series": "137",
+        "year_built": 1970,
+        "wall_type": "Панель",
+        "has_lift": False,
+        "has_balcony": True,
+        "photo_url": None,
+        "top_issues": ["Шумно от соседей", "Требуется ремонт", "Хорошее расположение"],
+        "dist_metro_m": 500,
+        "schools_1km": 3,
+        "parks_1km": 1,
+        "shops_1km": 8
+    }
+]
 
-st.success(f"Загружено {len(df)} объектов")
+df = pd.DataFrame(buildings_data)
 
-# --- ФИЛЬТРЫ В БОКОВОЙ ПАНЕЛИ ---
-st.sidebar.header("Фильтры")
+# === ПРИМЕНЕНИЕ ФИЛЬТРОВ ===
+filtered_df = df[
+    (df['price'] >= budget_range[0]) & 
+    (df['price'] <= budget_range[1]) &
+    (df['year_built'] >= year_range[0]) & 
+    (df['year_built'] <= year_range[1])
+]
 
-districts = ["Все"] + sorted(df["district"].dropna().unique().tolist())
-selected_district = st.sidebar.selectbox("Район", districts)
+if selected_rooms:
+    filtered_df = filtered_df[filtered_df['rooms'].isin(selected_rooms)]
 
-# Фикс для случая, когда одна цена
-min_price = int(df["price"].min()/1e6)
-max_price = int(df["price"].max()/1e6)
-
-if min_price == max_price:
-    price_range = st.sidebar.slider("Бюджет (млн ₽)", min_price, max_price + 1, (min_price, max_price + 1))
-else:
-    price_range = st.sidebar.slider("Бюджет (млн ₽)", min_price, max_price, (min_price, max_price))
-
-min_rep = st.sidebar.slider("Мин. рейтинг", 0, 100, 0)
-
-# Применяем фильтры
-mask = (df["price"] >= price_range[0]*1e6) & (df["price"] <= price_range[1]*1e6) & (df["reputation_score"] >= min_rep)
-if selected_district != "Все":
-    mask &= (df["district"] == selected_district)
-
-filtered_df = df[mask].copy()
-
-if "selected_id" not in st.session_state:
-    st.session_state.selected_id = None
-
-# --- КАРТА И КАРТОЧКА ---
+# === ОСНОВНАЯ ОБЛАСТЬ ===
 col_map, col_card = st.columns([2, 1])
 
 with col_map:
-    st.subheader("Карта объектов")
+    st.subheader("🗺️ Карта объектов")
     
-    m = folium.Map(location=[59.9343, 30.3351], zoom_start=11)
+    # Создаём карту
+    m = folium.Map(location=[59.9343, 30.3351], zoom_start=12, tiles="OpenStreetMap")
     
     for _, row in filtered_df.iterrows():
-        color = "green" if row["reputation_score"] > 70 else "red"
+        # Цвет маркера в зависимости от рейтинга (имитация)
+        color = "green" if row['year_built'] > 1980 else "orange"
         
-        tooltip_html = f"""
-        <div style="font-family: sans-serif; font-size: 13px;">
-            <b>{row['address']}</b><br>
-            💰 {row['price'] // 1_000_000} млн ₽<br>
-            🛏️ {row['rooms']} комн. | 📐 {row['area']} м²<br>
-            ⭐ Рейтинг: {row['reputation_score']}
-        </div>
+        # Tooltip при наведении
+        tooltip_text = f"""
+        <b>{row['name']}</b><br>
+        💰 {row['price']} млн ₽<br>
+        🛏️ {row['rooms']} комн. | 📐 {row['area']} м²<br>
+        📅 {row['year_built']} г.
         """
         
         folium.CircleMarker(
-            location=[row["lat"], row["lon"]],
+            location=[row['lat'], row['lon']],
             radius=8,
             color=color,
             fill=True,
             fill_color=color,
             fill_opacity=0.7,
-            tooltip=folium.Tooltip(tooltip_html, max_width=300),
-            popup=None
+            tooltip=tooltip_text
         ).add_to(m)
     
-    map_data = st_folium(m, width="100%", height=500, key="map")
-    
-    # Обработка клика по карте
-    if map_data and map_data.get("last_object_clicked"):
-        lat = map_data["last_object_clicked"]["lat"]
-        lng = map_data["last_object_clicked"]["lng"]
-        
-        min_dist = float("inf")
-        for _, row in filtered_df.iterrows():
-            dist = math.hypot(row["lat"] - lat, row["lon"] - lng)
-            if dist < min_dist:
-                min_dist = dist
-                st.session_state.selected_id = row["id"]
-    
-    # Выпадающий список
-    if not filtered_df.empty:
-        addresses = filtered_df["address"].tolist()
-        current_index = 0
-        if st.session_state.selected_id:
-            ids = filtered_df["id"].tolist()
-            if st.session_state.selected_id in ids:
-                current_index = ids.index(st.session_state.selected_id)
-        
-        selected_address = st.selectbox("Или выберите из списка:", addresses, index=current_index)
-        if selected_address:
-            st.session_state.selected_id = filtered_df[filtered_df["address"] == selected_address]["id"].iloc[0]
+    st_folium(m, width="100%", height=450, key="map")
 
 with col_card:
-    st.subheader("Карточка предложения")
+    st.subheader("📋 Карточка предложения")
     
-    if st.session_state.selected_id:
-        prop = filtered_df[filtered_df["id"] == st.session_state.selected_id]
-        if not prop.empty:
-            prop = prop.iloc[0]
+    # Выпадающий список для выбора объекта
+    selected_address = st.selectbox(
+        "Или выберите объект из списка:",
+        options=filtered_df['name'].tolist() if not filtered_df.empty else ["Нет данных"],
+        key="object_select"
+    )
+    
+    if not filtered_df.empty and selected_address != "Нет данных":
+        prop = filtered_df[filtered_df['name'] == selected_address].iloc[0]
+        
+        # Название и цена
+        st.markdown(f"### {prop['name']}")
+        st.info(f"{prop['rooms']}-комн. | 📐 {prop['area']} м² | {prop['floor']}/{prop['total_floors']} эт. | 💰 {prop['price']} млн ₽")
+        
+        st.divider()
+        
+        # Общая информация и фото
+        col_info, col_photo = st.columns(2)
+        
+        with col_info:
+            st.markdown("**🏗️ Общая информация**")
+            st.text(f"Серия: {prop['series']}")
+            st.text(f"Год постройки: {prop['year_built']}")
+            st.text(f"Стены: {prop['wall_type']}")
             
-            st.markdown(f"### 📍 {prop['address']}")
-            st.info(f"{prop['rooms']}-комн. | 📐 {prop['area']} м² | 💰 {prop['price']/1e6:.1f} млн ₽")
-            st.divider()
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**🏗️ Общая информация**")
-                st.write(f"Район: {prop['district'] or '-'}")
-                st.write(f"Этаж: {prop['floor']}/{prop['total_floors']}" if prop['floor'] else "Этаж: -")
-                st.write(f"Год: {prop['year_built'] or '-'}")
-                st.write(f"Серия: {prop['series'] or '-'}")
-                st.write(f"Стены: {prop['wall_type'] or '-'}")
-                st.write(f"Лифт: {'✅' if prop['has_lift'] else '❌'}")
-            
-            with col2:
-                st.markdown("**🏪 Инфраструктура**")
-                st.write(f"🚇 Метро: {prop['dist_metro_m']} м" if prop['dist_metro_m'] else "Метро: -")
-                st.write(f"🏫 Школы: {prop['schools_1km'] or '-'}")
-                st.write(f"🌲 Парки: {prop['parks_1km'] or '-'}")
-                st.write(f"🛍️ Магазины: {prop['shops_1km'] or '-'}")
-            
-            st.divider()
-            
-            st.markdown("**🗣️ Отзывы**")
-            if prop['top_issues']:
-                st.write(prop['top_issues'])
-            else:
-                st.write("Нет данных")
-            
-            if prop['photo_url']:
-                st.image(prop['photo_url'], use_container_width=True)
-            
-            if prop['url']:
-                st.link_button("Открыть объявление", prop['url'])
+            # Галочки для лифта и балкона
+            lift_icon = "✅" if prop['has_lift'] else "❌"
+            balcony_icon = "✅" if prop['has_balcony'] else "❌"
+            st.text(f"Лифт: {lift_icon} | Балкон: {balcony_icon}")
+        
+        with col_photo:
+            st.markdown("**🖼️ Фото**")
+            # Заглушка для фото (в реальном приложении - URL из БД)
+            st.image("https://placehold.co/300x200/e0e7ff/1e3a8a?text=Фото+объекта", use_container_width=True)
+        
+        st.divider()
+        
+        # Отзывы о доме (теги)
+        st.markdown("**🗣️ Отзывы о доме**")
+        if prop['top_issues']:
+            tags_html = "".join([
+                f'<span style="background:#e0e7ff; color:#1e3a8a; padding:4px 8px; border-radius:6px; margin:2px; display:inline-block; font-size:0.85em;">{tag}</span>' 
+                for tag in prop['top_issues']
+            ])
+            st.markdown(f"<div style='line-height:1.8;'>{tags_html}</div>", unsafe_allow_html=True)
         else:
-            st.info("Выберите объект")
+            st.caption("Нет данных об отзывах")
+        
+        st.divider()
+        
+        # Инфраструктура
+        st.markdown("**🏪 Инфраструктура (радиус 1 км)**")
+        
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        with col_m1:
+            st.metric("🚇 До метро", f"{prop['dist_metro_m']} м")
+        with col_m2:
+            st.metric("🏫 Школы", prop['schools_1km'])
+        with col_m3:
+            st.metric("🌲 Парки", prop['parks_1km'])
+        with col_m4:
+            st.metric("🛒 Магазины", prop['shops_1km'])
+        
+        st.divider()
+        
+        # Ссылка на объявление
+        st.link_button("🔗 Открыть оригинальное объявление", "https://cian.ru", use_container_width=True)
+    
     else:
-        st.info("👆 Нажмите на маркер")
+        st.info("👆 Выберите объект на карте или из списка, чтобы открыть карточку.")
 
-st.caption("2026")
+# === ОТОБРАЖЕНИЕ ТЕКУЩИХ ФИЛЬТРОВ ===
+with st.expander("📊 Текущие параметры фильтрации"):
+    st.write(f"💰 Бюджет: {budget_range[0]} - {budget_range[1]} млн ₽")
+    st.write(f"⭐ Мин. рейтинг: {min_rating}")
+    st.write(f"🏗️ Год постройки: {year_range[0]} - {year_range[1]}")
+    st.write(f"🛏️ Комнаты: {', '.join(map(str, selected_rooms)) if selected_rooms else 'любые'}")
+    st.write(f"📊 Найдено объектов: {len(filtered_df)}")
