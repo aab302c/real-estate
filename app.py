@@ -129,7 +129,16 @@ with st.sidebar:
     max_price = float(df['price'].max())
     budget_range = st.slider("Бюджет (млн ₽)", min_price/1e6, max_price/1e6, (min_price/1e6, max_price/1e6), key="budget")
     
-
+    st.subheader("Год постройки")
+    min_year = int(df['year_built'].min()) if df['year_built'].min() > 0 else 1900
+    max_year = int(df['year_built'].max()) if df['year_built'].max() > 0 else 2024
+    year_range = st.slider(
+        "Выберите диапазон годов:",
+        min_value=min_year,
+        max_value=max_year,
+        value=(min_year, max_year),
+        key="year_range"
+    )
     
 
     st.subheader("Количество комнат")
@@ -140,7 +149,7 @@ with st.sidebar:
         key="rooms_multiselect"
     )
 
-    st.subheader("🏢 Этаж")
+    st.subheader("Этаж")
     floor_type = st.radio(
         "Выберите тип этажа:",
         options=["Любой", "Не первый", "Не последний", "Только первый", "Только последний"],
@@ -174,6 +183,13 @@ elif floor_type == "Первый":
 elif floor_type == "Последний":
     filtered_df = filtered_df[filtered_df['floor'] == filtered_df['total_floors']]
 
+filtered_df = df[
+    (df['price']/1e6 >= budget_range[0]) & 
+    (df['price']/1e6 <= budget_range[1]) &
+    (df['reputation_score'] >= min_rating) &
+    (df['year_built'] >= year_range[0]) &
+    (df['year_built'] <= year_range[1])
+]
 # === КАРТА ===
 col_map, col_card = st.columns([2, 1])
 
