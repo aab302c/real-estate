@@ -97,7 +97,8 @@ for building in buildings_data:
     lat, lon = get_coords_from_address(building["address"])
     building["lat"] = lat
     building["lon"] = lon
-	if building["id"] == 43:
+	
+    if building["id"] == 43:
         building["lat"] = 60.066549
         building["lon"] = 30.303741
     
