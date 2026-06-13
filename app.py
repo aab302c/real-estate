@@ -310,4 +310,4 @@ st.write("### Диагностика")
 st.write(f"Всего объектов в filtered_df: {len(filtered_df)}")
 if not filtered_df.empty:
     st.write("Пример координат первых 3 объектов:")
-    st.write(filtered_df[['short_name', 'lat', 'lon', 'color']].head(3))
+    st.write(filtered_df[['short_name', 'lat', 'lon', 'color']].head(20))
