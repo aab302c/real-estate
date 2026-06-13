@@ -158,12 +158,11 @@ with st.sidebar:
     )
 
     st.subheader("Этаж")
-    floor_type = st.radio(
-        "Выберите тип этажа:",
-        options=["Любой", "Не первый", "Не последний", "Только первый", "Только последний"],
-        index=0,
-        key="floor_type"
-    )
+    col1, col2 = st.columns(2)
+    with col1:
+        exclude_first = st.checkbox("Исключить первый этаж", key="exclude_first")
+    with col2:
+        exclude_last = st.checkbox("Исключить последний этаж", key="exclude_last")
     floor_min = st.number_input("Этаж от:", min_value=1, max_value=25, value=1, key="floor_min")
     floor_max = st.number_input("Этаж до:", min_value=1, max_value=25, value=25, key="floor_max")
 	
@@ -182,14 +181,10 @@ filtered_df = filtered_df[
     (filtered_df['floor'] <= floor_max)
 ]
 
-if floor_type == "Не первый":
+if exclude_first:
     filtered_df = filtered_df[filtered_df['floor'] != 1]
-elif floor_type == "Не последний":
+if exclude_last:
     filtered_df = filtered_df[filtered_df['floor'] != filtered_df['total_floors']]
-elif floor_type == "Первый":
-    filtered_df = filtered_df[filtered_df['floor'] == 1]
-elif floor_type == "Последний":
-    filtered_df = filtered_df[filtered_df['floor'] == filtered_df['total_floors']]
 
 filtered_df = df[
     (df['price']/1e6 >= budget_range[0]) & 
