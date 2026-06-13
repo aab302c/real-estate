@@ -102,8 +102,8 @@ for building in buildings_data:
         building["lat"] = 60.066549
         building["lon"] = 30.303741
     if building["id"] == 24:
-        building["lat"] = 60.027378
-        building["lon"] = 30.369065    
+        building["lat"] = 60.027398
+        building["lon"] = 30.369055    
     street, house = parse_address(building["address"])
     building["street"] = street
     building["house"] = house
