@@ -131,13 +131,13 @@ with st.sidebar:
     min_rating = st.slider("⭐ Мин. рейтинг репутации", 0, 100, 0, key="rating")
     
 
-	st.subheader("Количество комнат")
-	selected_rooms = st.multiselect(
-		"Выберите количество комнат (можно несколько):",
-		options=[1, 2, 3, 4, 5],
-		default=[1, 2, 3, 4, 5],
-		key="rooms_multiselect"
-	)
+    st.subheader("Количество комнат")
+    selected_rooms = st.multiselect(
+        "Выберите количество комнат (можно несколько):",
+        options=[1, 2, 3, 4, 5],
+        default=[1, 2, 3, 4, 5],
+        key="rooms_multiselect"
+    )
 
 # === ФИЛЬТРАЦИЯ ===
 filtered_df = df[
