@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-from PIL import Image
-import io
-import base64
 
 # === НАСТРОЙКА СТРАНИЦЫ ===
 st.set_page_config(
@@ -13,44 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# === ЗАГОЛОВОК ===
-st.title("🏠 Рынок жилой недвижимости СПб")
-st.caption("Прототип аналитической системы | СПбГЭТУ «ЛЭТИ» | 2026")
-
-# === БОКОВАЯ ПАНЕЛЬ С ФИЛЬТРАМИ ===
-with st.sidebar:
-    st.header("📊 Фильтры")
-    
-    # Бюджет
-    st.subheader("💰 Бюджет (млн ₽)")
-    budget_range = st.slider("", 6, 42, (6, 42), key="budget")
-    
-    # Мин. рейтинг репутации
-    st.subheader("⭐ Мин. рейтинг репутации")
-    min_rating = st.slider("", 0, 100, 0, key="rating")
-    
-    # Год постройки
-    st.subheader("🏗️ Год постройки")
-    year_range = st.slider("", 1972, 1998, (1972, 1998), key="year")
-    
-    # Количество комнат
-    st.subheader("🛏️ Количество комнат")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        rooms_1 = st.checkbox("1", key="rooms_1")
-    with col2:
-        rooms_2 = st.checkbox("2", key="rooms_2")
-    with col3:
-        rooms_3 = st.checkbox("3", key="rooms_3")
-    
-    selected_rooms = []
-    if rooms_1: selected_rooms.append(1)
-    if rooms_2: selected_rooms.append(2)
-    if rooms_3: selected_rooms.append(3)
-
-
-# === ДАННЫЕ ДЛЯ ДЕМОНСТРАЦИИ ===
-# Тестовые данные (в реальном приложении загружаются из Supabase)
+# === ДАННЫЕ ===
 buildings_data = [
     {
         "id": 1,
@@ -73,7 +33,8 @@ buildings_data = [
         "dist_metro_m": 350,
         "schools_1km": 4,
         "parks_1km": 2,
-        "shops_1km": 12
+        "shops_1km": 12,
+        "reputation_score": 85
     },
     {
         "id": 2,
@@ -96,7 +57,8 @@ buildings_data = [
         "dist_metro_m": 200,
         "schools_1km": 5,
         "parks_1km": 3,
-        "shops_1km": 25
+        "shops_1km": 25,
+        "reputation_score": 92
     },
     {
         "id": 3,
@@ -119,18 +81,55 @@ buildings_data = [
         "dist_metro_m": 500,
         "schools_1km": 3,
         "parks_1km": 1,
-        "shops_1km": 8
+        "shops_1km": 8,
+        "reputation_score": 68
     }
 ]
 
 df = pd.DataFrame(buildings_data)
+
+# === ЗАГОЛОВОК ===
+st.title("🏠 Рынок жилой недвижимости СПб")
+st.caption("Прототип аналитической системы | СПбГЭТУ «ЛЭТИ» | 2026")
+
+# === БОКОВАЯ ПАНЕЛЬ С ФИЛЬТРАМИ ===
+with st.sidebar:
+    st.header("📊 Фильтры")
+    
+    st.subheader("💰 Бюджет (млн ₽)")
+    min_price = float(df['price'].min())
+    max_price = float(df['price'].max())
+    budget_range = st.slider("", min_price, max_price, (min_price, max_price), key="budget")
+    
+    st.subheader("⭐ Мин. рейтинг репутации")
+    min_rating = st.slider("", 0, 100, 0, key="rating")
+    
+    st.subheader("🏗️ Год постройки")
+    min_year = int(df['year_built'].min())
+    max_year = int(df['year_built'].max())
+    year_range = st.slider("", min_year, max_year, (min_year, max_year), key="year")
+    
+    st.subheader("🛏️ Количество комнат")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        rooms_1 = st.checkbox("1", key="rooms_1")
+    with col2:
+        rooms_2 = st.checkbox("2", key="rooms_2")
+    with col3:
+        rooms_3 = st.checkbox("3", key="rooms_3")
+    
+    selected_rooms = []
+    if rooms_1: selected_rooms.append(1)
+    if rooms_2: selected_rooms.append(2)
+    if rooms_3: selected_rooms.append(3)
 
 # === ПРИМЕНЕНИЕ ФИЛЬТРОВ ===
 filtered_df = df[
     (df['price'] >= budget_range[0]) & 
     (df['price'] <= budget_range[1]) &
     (df['year_built'] >= year_range[0]) & 
-    (df['year_built'] <= year_range[1])
+    (df['year_built'] <= year_range[1]) &
+    (df['reputation_score'] >= min_rating)
 ]
 
 if selected_rooms:
@@ -143,11 +142,16 @@ with col_map:
     st.subheader("🗺️ Карта объектов")
     
     # Создаём карту
-    m = folium.Map(location=[59.9343, 30.3351], zoom_start=12, tiles="OpenStreetMap")
+    m = folium.Map(location=[59.9343, 30.3351], zoom_start=13, tiles="OpenStreetMap")
     
     for _, row in filtered_df.iterrows():
-        # Цвет маркера в зависимости от рейтинга (имитация)
-        color = "green" if row['year_built'] > 1980 else "orange"
+        # Цвет маркера в зависимости от репутации
+        if row['reputation_score'] >= 70:
+            color = "green"
+        elif row['reputation_score'] >= 50:
+            color = "orange"
+        else:
+            color = "red"
         
         # Tooltip при наведении
         tooltip_text = f"""
@@ -159,30 +163,56 @@ with col_map:
         
         folium.CircleMarker(
             location=[row['lat'], row['lon']],
-            radius=8,
+            radius=9,
             color=color,
             fill=True,
             fill_color=color,
             fill_opacity=0.7,
-            tooltip=tooltip_text
+            weight=2,
+            tooltip=tooltip_text,
+            popup=row['name']
         ).add_to(m)
     
-    st_folium(m, width="100%", height=450, key="map")
+    # Отображаем карту
+    map_data = st_folium(m, width="100%", height=450, key="map")
+    
+    # Обработка клика по карте
+    selected_id = None
+    if map_data and map_data.get("last_object_clicked"):
+        popup_name = map_data["last_object_clicked"].get("popup")
+        if popup_name:
+            selected_row = filtered_df[filtered_df['name'] == popup_name]
+            if not selected_row.empty:
+                selected_id = selected_row.iloc[0]['id']
+    
+    # ВЫПАДАЮЩИЙ СПИСОК ПОД КАРТОЙ
+    if not filtered_df.empty:
+        # Находим индекс выбранного объекта
+        current_index = 0
+        if selected_id is not None:
+            idx_list = filtered_df[filtered_df['id'] == selected_id].index
+            if not idx_list.empty:
+                current_index = idx_list[0]
+        
+        selected_address = st.selectbox(
+            "Выберите объект из списка:",
+            options=filtered_df['name'].tolist(),
+            index=current_index,
+            key="object_select"
+        )
+        
+        if selected_address:
+            selected_row = filtered_df[filtered_df['name'] == selected_address].iloc[0]
+            selected_id = selected_row['id']
+    else:
+        st.warning("⚠️ Нет объектов, соответствующих фильтрам")
+        selected_id = None
 
 with col_card:
-    st.subheader("📋 Карточка предложения")
-    
-    # Выпадающий список для выбора объекта
-    selected_address = st.selectbox(
-        "Или выберите объект из списка:",
-        options=filtered_df['name'].tolist() if not filtered_df.empty else ["Нет данных"],
-        key="object_select"
-    )
-    
-    if not filtered_df.empty and selected_address != "Нет данных":
-        prop = filtered_df[filtered_df['name'] == selected_address].iloc[0]
+    if selected_id is not None:
+        prop = filtered_df[filtered_df['id'] == selected_id].iloc[0]
         
-        # Название и цена
+        # Название и цена (без подзаголовка "Карточка предложения")
         st.markdown(f"### {prop['name']}")
         st.info(f"{prop['rooms']}-комн. | 📐 {prop['area']} м² | {prop['floor']}/{prop['total_floors']} эт. | 💰 {prop['price']} млн ₽")
         
@@ -197,14 +227,13 @@ with col_card:
             st.text(f"Год постройки: {prop['year_built']}")
             st.text(f"Стены: {prop['wall_type']}")
             
-            # Галочки для лифта и балкона
             lift_icon = "✅" if prop['has_lift'] else "❌"
             balcony_icon = "✅" if prop['has_balcony'] else "❌"
             st.text(f"Лифт: {lift_icon} | Балкон: {balcony_icon}")
         
         with col_photo:
             st.markdown("**🖼️ Фото**")
-            # Заглушка для фото (в реальном приложении - URL из БД)
+            # Заглушка для фото
             st.image("https://placehold.co/300x200/e0e7ff/1e3a8a?text=Фото+объекта", use_container_width=True)
         
         st.divider()
@@ -241,7 +270,7 @@ with col_card:
         st.link_button("🔗 Открыть оригинальное объявление", "https://cian.ru", use_container_width=True)
     
     else:
-        st.info("👆 Выберите объект на карте или из списка, чтобы открыть карточку.")
+        st.info("👆 Нажмите на маркер на карте или выберите из списка, чтобы открыть карточку объекта.")
 
 # === ОТОБРАЖЕНИЕ ТЕКУЩИХ ФИЛЬТРОВ ===
 with st.expander("📊 Текущие параметры фильтрации"):
