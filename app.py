@@ -160,9 +160,9 @@ with st.sidebar:
     st.subheader("Этаж")
     col1, col2 = st.columns(2)
     with col1:
-        exclude_first = st.checkbox("Исключить первый этаж", key="exclude_first")
+        exclude_first = st.checkbox("Не первый", key="exclude_first")
     with col2:
-        exclude_last = st.checkbox("Исключить последний этаж", key="exclude_last")
+        exclude_last = st.checkbox("Не последний", key="exclude_last")
     floor_min = st.number_input("Этаж от:", min_value=1, max_value=25, value=1, key="floor_min")
     floor_max = st.number_input("Этаж до:", min_value=1, max_value=25, value=25, key="floor_max")
 	
