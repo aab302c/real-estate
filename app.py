@@ -2,33 +2,26 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+import random
 
 # === НАСТРОЙКА СТРАНИЦЫ ===
 st.set_page_config(
-    page_title="Рынок жилой недвижимости СПб",
+    page_title="Рынок жилой недвижимости Санкт-Петербурга",
     page_icon="🏠",
     layout="wide"
 )
 
 # === ФУНКЦИЯ ДЛЯ ПАРСИНГА АДРЕСА ===
 def parse_address(full_address):
-    """
-    Извлекает из полного адреса улицу и номер дома.
-    Пример: "Санкт-Петербург, р-н Центральный, № 78, м. Сенная площадь, набережная Реки Фонтанки, 73"
-    Результат: улица = "набережная Реки Фонтанки", дом = "73"
-    """
     parts = full_address.split(',')
     if len(parts) >= 2:
-        street = parts[-2].strip()  # предпоследняя часть
-        house = parts[-1].strip()    # последняя часть
+        street = parts[-2].strip()
+        house = parts[-1].strip()
         return street, house
     return full_address, ""
 
-# === ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ КООРДИНАТ ПО РАЙОНУ ===
+# === ФУНКЦИЯ ДЛЯ ОПРЕДЕЛЕНИЯ КООРДИНАТ ===
 def get_coords_from_address(address):
-    """
-    Определяет координаты на основе района в адресе
-    """
     district_coords = {
         "Кировский": [59.8764, 30.2614],
         "Калининский": [59.9975, 30.3968],
@@ -45,11 +38,10 @@ def get_coords_from_address(address):
         "Красносельский": [59.8745, 30.1394],
         "Пушкинский": [59.7234, 30.4122],
     }
-    
     for district, coords in district_coords.items():
         if district in address:
             return coords
-    return [59.9343, 30.3351]  # центр СПб по умолчанию
+    return [59.9343, 30.3351]
 
 # === ДАННЫЕ ===
 buildings_data = [
@@ -102,23 +94,15 @@ buildings_data = [
 
 # === ОБРАБОТКА ДАННЫХ ===
 for building in buildings_data:
-    # Определяем координаты
     lat, lon = get_coords_from_address(building["address"])
     building["lat"] = lat
     building["lon"] = lon
-    if building["id"] == 43:
-        building["lat"] = 60.066549
-        building["lon"] = 30.303741
     
-    # Парсим адрес: извлекаем улицу и номер дома
     street, house = parse_address(building["address"])
     building["street"] = street
     building["house"] = house
-    
-    # Короткое название для отображения
     building["short_name"] = f"{street}, {house}"
     
-    # Цвет в зависимости от репутации
     if building["reputation_score"] >= 70:
         building["color"] = "green"
     elif building["reputation_score"] >= 50:
@@ -129,20 +113,20 @@ for building in buildings_data:
 df = pd.DataFrame(buildings_data)
 
 # === ЗАГОЛОВОК ===
-st.title("🏠 Рынок жилой недвижимости СПб")
-st.caption("Прототип аналитической системы | СПбГЭТУ «ЛЭТИ» | 2026")
+st.title("Рынок жилой недвижимости Санкт-Петербурга")
+st.caption("Прототип аналитической системы | ФКТИ СПбГЭТУ «ЛЭТИ» | 2026")
 
 # === БОКОВАЯ ПАНЕЛЬ ===
 with st.sidebar:
-    st.header("📊 Фильтры")
+    st.header("Фильтры")
     
     min_price = float(df['price'].min())
     max_price = float(df['price'].max())
-    budget_range = st.slider("💰 Бюджет (млн ₽)", min_price/1e6, max_price/1e6, (min_price/1e6, max_price/1e6), key="budget")
+    budget_range = st.slider("Бюджет (млн ₽)", min_price/1e6, max_price/1e6, (min_price/1e6, max_price/1e6), key="budget")
     
-    min_rating = st.slider("⭐ Мин. рейтинг репутации", 0, 100, 0, key="rating")
+    min_rating = st.slider("Мин. рейтинг репутации", 0, 100, 0, key="rating")
     
-    st.subheader("🛏️ Количество комнат")
+    st.subheader("Количество комнат")
     col1, col2, col3 = st.columns(3)
     with col1:
         rooms_1 = st.checkbox("1", key="rooms_1")
@@ -150,11 +134,14 @@ with st.sidebar:
         rooms_2 = st.checkbox("2", key="rooms_2")
     with col3:
         rooms_3 = st.checkbox("3", key="rooms_3")
+    with col1:
+        rooms_4 = st.checkbox("4", key="rooms_4")
     
     selected_rooms = []
     if rooms_1: selected_rooms.append(1)
     if rooms_2: selected_rooms.append(2)
     if rooms_3: selected_rooms.append(3)
+    if rooms_4: selected_rooms.append(4)
 
 # === ФИЛЬТРАЦИЯ ===
 filtered_df = df[
@@ -169,30 +156,25 @@ if selected_rooms:
 # === КАРТА ===
 col_map, col_card = st.columns([2, 1])
 
-import random
-
-def add_jitter(lat, lon, jitter=0.008):
-    """Добавляет случайное смещение к координатам, чтобы точки не накладывались"""
-    lat = lat + random.uniform(-jitter, jitter)
-    lon = lon + random.uniform(-jitter, jitter)
-    return lat, lon
-    
 with col_map:
     st.subheader("🗺️ Карта объектов")
     
     m = folium.Map(location=[59.9343, 30.3351], zoom_start=11, tiles="OpenStreetMap")
     
-    for _, row in filtered_df.iterrows():
-        lat, lon = add_jitter(row['lat'], row['lon'])
+    for idx, row in filtered_df.iterrows():
+        # Небольшое смещение для каждого объекта
+        lat = row['lat'] + (idx * 0.0005) % 0.005
+        lon = row['lon'] + (idx * 0.0003) % 0.005
+        
         tooltip_text = f"""
         <b>{row['short_name']}</b><br>
         💰 {row['price']/1e6:.1f} млн ₽<br>
-        🏗️ {int(row['year_built']) if row['year_built'] > 0 else 'н/д'} г.<br>
+        🛏️ {row['rooms']} комн. | 📐 {row['area']} м²<br>
         ⭐ {row['reputation_score']}
         """
         
         folium.CircleMarker(
-            location=[row['lat'], row['lon']],
+            location=[lat, lon],
             radius=8,
             color=row['color'],
             fill=True,
@@ -205,6 +187,7 @@ with col_map:
     
     map_data = st_folium(m, width="100%", height=500, key="map")
     
+    # Обработка клика по карте
     selected_id = None
     if map_data and map_data.get("last_object_clicked"):
         popup_name = map_data["last_object_clicked"].get("popup")
@@ -213,6 +196,7 @@ with col_map:
             if not selected_row.empty:
                 selected_id = selected_row.iloc[0]['id']
     
+    # Выпадающий список под картой
     if not filtered_df.empty:
         current_index = 0
         if selected_id is not None:
@@ -234,7 +218,7 @@ with col_map:
         st.warning("⚠️ Нет объектов, соответствующих фильтрам")
         selected_id = None
 
-# === КАРТОЧКА ===
+# === КАРТОЧКА ОБЪЕКТА ===
 with col_card:
     if selected_id is not None:
         prop = filtered_df[filtered_df['id'] == selected_id].iloc[0]
@@ -242,10 +226,10 @@ with col_card:
         st.markdown(f"### 📍 {prop['short_name']}")
         
         price_m = prop['price'] / 1e6
-        rooms = int(prop['rooms']) if prop['rooms'] > 0 else "н/д"
-        area = prop['area'] if prop['area'] > 0 else "н/д"
-        floor = int(prop['floor']) if prop['floor'] > 0 else "н/д"
-        total_floors = int(prop['total_floors']) if prop['total_floors'] > 0 else "н/д"
+        rooms = prop['rooms']
+        area = prop['area']
+        floor = prop['floor']
+        total_floors = prop['total_floors']
         
         st.info(f"{rooms}-комн. | 📐 {area} м² | {floor}/{total_floors} эт. | 💰 {price_m:.1f} млн ₽")
         
@@ -256,7 +240,7 @@ with col_card:
         with col_info:
             st.markdown("**🏗️ Общая информация**")
             st.text(f"Серия: {prop['series'] if prop['series'] else 'н/д'}")
-            st.text(f"Год постройки: {int(prop['year_built']) if prop['year_built'] > 0 else 'н/д'}")
+            st.text(f"Год постройки: {prop['year_built']}")
             st.text(f"Стены: {prop['wall_type'] if prop['wall_type'] else 'н/д'}")
             
             lift_icon = "✅" if prop['has_lift'] else "❌"
@@ -301,7 +285,8 @@ with col_card:
         st.link_button("🔗 Открыть оригинальное объявление", "https://cian.ru", use_container_width=True)
     
     else:
-        st.info("👆 Нажмите на маркер на карте или выберите из списка, чтобы открыть карточку объекта.")
+        # ВЫВОДИМ СООБЩЕНИЕ, КОГДА НИЧЕГО НЕ ВЫБРАНО
+        st.info("👆 Выберите объект на карте или из списка, чтобы открыть карточку.")
 
 # === СТАТИСТИКА ===
 with st.expander("📊 Текущие параметры фильтрации"):
@@ -309,17 +294,3 @@ with st.expander("📊 Текущие параметры фильтрации"):
     st.write(f"⭐ Мин. рейтинг: {min_rating}")
     st.write(f"🛏️ Комнаты: {', '.join(map(str, selected_rooms)) if selected_rooms else 'любые'}")
     st.write(f"📊 Найдено объектов: {len(filtered_df)}")
-    
-    if not filtered_df.empty:
-        green = len(filtered_df[filtered_df['reputation_score'] >= 70])
-        yellow = len(filtered_df[(filtered_df['reputation_score'] >= 50) & (filtered_df['reputation_score'] < 70)])
-        red = len(filtered_df[filtered_df['reputation_score'] < 50])
-        st.write(f"🟢 Зелёных: {green} ({green/len(filtered_df)*100:.0f}%)")
-        st.write(f"🟡 Жёлтых: {yellow} ({yellow/len(filtered_df)*100:.0f}%)")
-        st.write(f"🔴 Красных: {red} ({red/len(filtered_df)*100:.0f}%)")
-# === ДИАГНОСТИКА ===
-st.write("### Диагностика")
-st.write(f"Всего объектов в filtered_df: {len(filtered_df)}")
-if not filtered_df.empty:
-    st.write("Пример координат первых 3 объектов:")
-    st.write(filtered_df[['short_name', 'lat', 'lon', 'color']].head(20))
