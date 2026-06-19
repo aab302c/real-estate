@@ -439,7 +439,6 @@ with col_card:
             
             col_m1, col_m2, col_m3, col_m4 = st.columns(4)
             with col_m1:
-                with col_m1:
                 metro_time = int(prop['metro_time']) if pd.notna(prop['metro_time']) else None
                 if metro_time:
                     dist_m = metro_time * 80
