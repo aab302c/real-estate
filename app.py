@@ -4,8 +4,9 @@ import folium
 from streamlit_folium import st_folium
 from sqlalchemy import create_engine
 import re
+
 def render_colored_tags(tags_string):
-    """Преобразует строку тегов вида 'aspect|color; aspect|color' в HTML с цветным текстом"""
+    """Преобразует строку тегов вида 'aspect|color; aspect|color' в HTML с цветными плашками"""
     if not tags_string or pd.isna(tags_string):
         return "Нет данных об отзывах"
     
@@ -27,13 +28,16 @@ def render_colored_tags(tags_string):
             aspect, color = tag.split('|', 1)
             color_hex = color_map.get(color.lower(), '#6b7280')
             html_parts.append(
-                f'<span style="color:{color_hex}; font-weight:500; margin-right:8px; '
-                f'font-size:0.95em;">{aspect.strip()}</span>'
+                f'<span style="display:inline-block; background:#f3f4f6; '
+                f'color:{color_hex}; padding:4px 14px; border-radius:16px; '
+                f'margin:3px 6px 3px 0; font-size:0.85em; font-weight:500; '
+                f'border:1px solid {color_hex}40;">{aspect.strip()}</span>'
             )
         else:
             html_parts.append(
-                f'<span style="color:#6b7280; font-weight:500; margin-right:8px; '
-                f'font-size:0.95em;">{tag}</span>'
+                f'<span style="display:inline-block; background:#f3f4f6; '
+                f'color:#6b7280; padding:4px 14px; border-radius:16px; '
+                f'margin:3px 6px 3px 0; font-size:0.85em; font-weight:500;">{tag}</span>'
             )
     
     return "".join(html_parts)
@@ -333,16 +337,17 @@ with col_card:
                     st.image("https://placehold.co/300x200/e0e7ff/1e3a8a?text=Фото+объекта", use_container_width=True)
             
             st.divider()
-            
+
+
             st.markdown("**🗣️ Отзывы о доме**")
             if prop['top_issues']:
                 if isinstance(prop['top_issues'], str):
                     tags_html = render_colored_tags(prop['top_issues'])
-                    st.markdown(f"<div style='line-height:2;'>{tags_html}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
                 elif isinstance(prop['top_issues'], list):
                     tags_string = "; ".join(prop['top_issues'])
                     tags_html = render_colored_tags(tags_string)
-                    st.markdown(f"<div style='line-height:2;'>{tags_html}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
                 else:
                     st.caption("Нет данных об отзывах")
             else:
