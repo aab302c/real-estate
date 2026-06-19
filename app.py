@@ -116,19 +116,6 @@ if df.empty:
 st.title("🏠 Рынок жилой недвижимости Санкт-Петербурга")
 st.caption("Прототип аналитической системы | ФКТИ СПбГЭТУ «ЛЭТИ» | 2026")
 
-# === СТАТИСТИКА ===
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric("📊 Всего объектов", len(df))
-with col2:
-    avg_price = df['price'].mean() / 1e6
-    st.metric("💰 Средняя цена", f"{avg_price:.1f} млн ₽")
-with col3:
-    avg_area = df['area'].mean()
-    st.metric("📐 Средняя площадь", f"{avg_area:.1f} м²")
-with col4:
-    avg_rating = df['reputation_score'].mean()
-    st.metric("⭐ Средний рейтинг", f"{avg_rating:.1f}")
 
 # === БОКОВАЯ ПАНЕЛЬ ===
 with st.sidebar:
