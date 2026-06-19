@@ -111,16 +111,15 @@ if df.empty:
     st.stop()
 
 # === ЗАГОЛОВОК ===
-st.title("🏠 Рынок жилой недвижимости Санкт-Петербурга")
+st.title("Рынок жилой недвижимости Санкт-Петербурга")
 st.caption("Прототип аналитической системы | ФКТИ СПбГЭТУ «ЛЭТИ» | 2026")
 
 # === БОКОВАЯ ПАНЕЛЬ ===
 with st.sidebar:
-    st.header("🔍 Фильтры")
+    st.header("Фильтры")
     
     min_rating = st.slider("Мин. рейтинг репутации 🛈", 0, 100, 0, key="rating")
     
-    st.subheader("Тип жилья")
     housing_types = df['housing_type'].dropna().unique().tolist()
     if not housing_types:
         housing_types = ["Вторичка"]
@@ -141,7 +140,6 @@ with st.sidebar:
         key="budget"
     )
     
-    st.subheader("Год постройки")
     min_year = int(df['year_built'].min()) if df['year_built'].min() > 0 else 1900
     max_year = int(df['year_built'].max()) if df['year_built'].max() > 0 else 2024
     year_range = st.slider(
@@ -152,7 +150,6 @@ with st.sidebar:
         key="year_range"
     )
     
-    st.subheader("Количество комнат")
     rooms_options = sorted(df['rooms'].dropna().unique().astype(int).tolist())
     selected_rooms = st.multiselect(
         "Выберите количество комнат (можно несколько):",
@@ -161,7 +158,6 @@ with st.sidebar:
         key="rooms_multiselect"
     )
     
-    st.subheader("Этаж")
     col1, col2 = st.columns(2)
     with col1:
         exclude_first = st.checkbox("Не первый", key="exclude_first")
@@ -199,7 +195,6 @@ if exclude_last:
 col_map, col_card = st.columns([2, 1])
 
 with col_map:
-    st.subheader("🗺️ Карта объектов")
     
     if filtered_df.empty:
         st.warning("⚠️ Нет объектов, соответствующих фильтрам")
