@@ -345,8 +345,8 @@ with col_card:
                     st.markdown(f"<div style='line-height:2;'>{tags_html}</div>", unsafe_allow_html=True)
                 else:
                     st.caption("Нет данных об отзывах")
-else:
-    st.caption("Нет данных об отзывах")
+            else:
+                st.caption("Нет данных об отзывах")
             
             st.divider()
             
