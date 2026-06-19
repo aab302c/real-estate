@@ -447,8 +447,7 @@ with col_card:
                     st.markdown(f"""
                         <div style="text-align:center; padding:0px;">
                             <div style="font-size:0.7em; color:#6b7280;">🚇 До метро</div>
-                            <div style="font-size:1.1em; font-weight:bold; color:#1f2937;">{metro_time} мин</div>
-                            <div style="font-size:0.65em; color:#9ca3af;">{dist_m} м</div>
+                            <div style="font-size:1.1em; font-weight:bold; color:#1f2937;">{dist_m} м</div>
                         </div>
                     """, unsafe_allow_html=True)
                 else:
