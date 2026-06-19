@@ -168,7 +168,7 @@ def load_data_from_supabase():
         schools_1km,
         parks_1km,
         shops_1km
-    FROM v_dashboard_data
+    FROM v_dashboard_data_v2  -- <--- ИЗМЕНЕНО НА v2
     WHERE lat IS NOT NULL AND lon IS NOT NULL
       AND lat BETWEEN 59.5 AND 60.5
       AND lon BETWEEN 29.5 AND 30.8
@@ -316,7 +316,6 @@ if exclude_last:
     filtered_df = filtered_df[filtered_df['floor'] != filtered_df['total_floors']]
 
 # === КАРТА ===
-# === КАРТА ===
 col_map, col_card = st.columns([2, 1])
 
 with col_map:
@@ -346,7 +345,7 @@ with col_map:
                 fill_color=row['color'],
                 fill_opacity=0.7,
                 weight=2,
-                tooltip=tooltip_text  # <--- только tooltip, popup убран
+                tooltip=tooltip_text
             ).add_to(m)
         
         st_folium(m, width="100%", height=500, key="map")
