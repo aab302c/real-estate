@@ -82,10 +82,8 @@ def load_data_from_supabase():
     
     # Цвет по рейтингу
     def get_color(score):
-        if score >= 75:
+        if score >= 70:
             return "green"
-        elif score >= 60:
-            return "blue"
         elif score >= 45:
             return "orange"
         else:
