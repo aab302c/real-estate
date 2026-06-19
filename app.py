@@ -4,7 +4,40 @@ import folium
 from streamlit_folium import st_folium
 from sqlalchemy import create_engine
 import re
-
+def render_colored_tags(tags_string):
+    """Преобразует строку тегов вида 'aspect|color; aspect|color' в HTML с цветным текстом"""
+    if not tags_string or pd.isna(tags_string):
+        return "Нет данных об отзывах"
+    
+    # Цвета для текста
+    color_map = {
+        'green': '#22c55e',   # ярко-зеленый
+        'red': '#ef4444',     # красный
+        'grey': '#6b7280',    # серый
+        'orange': '#f59e0b',  # оранжевый
+        'blue': '#3b82f6',    # синий
+    }
+    
+    # Разбиваем строку на отдельные теги
+    tags = [t.strip() for t in str(tags_string).split(';') if t.strip()]
+    
+    html_parts = []
+    for tag in tags:
+        if '|' in tag:
+            aspect, color = tag.split('|', 1)
+            color_hex = color_map.get(color.lower(), '#6b7280')
+            html_parts.append(
+                f'<span style="color:{color_hex}; font-weight:500; margin-right:8px; '
+                f'font-size:0.95em;">{aspect.strip()}</span>'
+            )
+        else:
+            html_parts.append(
+                f'<span style="color:#6b7280; font-weight:500; margin-right:8px; '
+                f'font-size:0.95em;">{tag}</span>'
+            )
+    
+    return "".join(html_parts)
+    
 # === НАСТРОЙКА СТРАНИЦЫ ===
 st.set_page_config(
     page_title="Рынок жилой недвижимости Санкт-Петербурга",
@@ -303,13 +336,17 @@ with col_card:
             
             st.markdown("**🗣️ Отзывы о доме**")
             if prop['top_issues']:
-                tags_html = "".join([
-                    f'<span style="background:#e0e7ff; color:#1e3a8a; padding:4px 8px; border-radius:6px; margin:2px; display:inline-block; font-size:0.85em;">{tag}</span>' 
-                    for tag in prop['top_issues']
-                ])
-                st.markdown(f"<div style='line-height:1.8;'>{tags_html}</div>", unsafe_allow_html=True)
-            else:
-                st.caption("Нет данных об отзывах")
+                if isinstance(prop['top_issues'], str):
+                    tags_html = render_colored_tags(prop['top_issues'])
+                    st.markdown(f"<div style='line-height:2;'>{tags_html}</div>", unsafe_allow_html=True)
+                elif isinstance(prop['top_issues'], list):
+                    tags_string = "; ".join(prop['top_issues'])
+                    tags_html = render_colored_tags(tags_string)
+                    st.markdown(f"<div style='line-height:2;'>{tags_html}</div>", unsafe_allow_html=True)
+                else:
+                    st.caption("Нет данных об отзывах")
+else:
+    st.caption("Нет данных об отзывах")
             
             st.divider()
             
