@@ -316,10 +316,10 @@ if exclude_last:
     filtered_df = filtered_df[filtered_df['floor'] != filtered_df['total_floors']]
 
 # === КАРТА ===
+# === КАРТА ===
 col_map, col_card = st.columns([2, 1])
 
 with col_map:
-
     
     if filtered_df.empty:
         st.warning("⚠️ Нет объектов, соответствующих фильтрам")
@@ -346,22 +346,13 @@ with col_map:
                 fill_color=row['color'],
                 fill_opacity=0.7,
                 weight=2,
-                tooltip=tooltip_text,
-                popup=str(row['id'])
+                tooltip=tooltip_text  # <--- только tooltip, popup убран
             ).add_to(m)
         
-        map_data = st_folium(m, width="100%", height=500, key="map")
+        st_folium(m, width="100%", height=500, key="map")
         
-        # === ВЫБОР ОБЪЕКТА ===
+        # === ВЫБОР ТОЛЬКО ИЗ СПИСКА ===
         selected_id = None
-        
-        # 1. Клик по карте
-        if map_data and map_data.get("last_object_clicked"):
-            popup_value = map_data["last_object_clicked"].get("popup")
-            if popup_value and popup_value.isdigit():
-                selected_id = int(popup_value)
-        
-        # 2. Выпадающий список (только названия)
         if not filtered_df.empty:
             options_list = ["-- Выберите объект --"] + filtered_df['short_name'].tolist()
             
@@ -375,7 +366,6 @@ with col_map:
                 selected_row = filtered_df[filtered_df['short_name'] == selected_option]
                 if not selected_row.empty:
                     selected_id = selected_row.iloc[0]['id']
-
 # === КАРТОЧКА ОБЪЕКТА ===
 with col_card:
 
