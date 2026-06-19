@@ -442,7 +442,7 @@ with col_card:
                 metro_time = int(prop['metro_time']) if pd.notna(prop['metro_time']) else None
                 if metro_time:
                     dist_m = metro_time * 80
-                    st.metric("🚇 До метро", f"{metro_time} мин ({dist_m} м)")
+                    st.metric("🚇 До метро", f"{dist_m} м")
                 else:
                     st.metric("🚇 До метро", "н/д")
             with col_m2:
