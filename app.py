@@ -80,7 +80,7 @@ def load_data_from_supabase():
         axis=1
     )
     
-    # Цвет по рейтингу (контрастная схема)
+    # Цвет по рейтингу
     def get_color(score):
         if score >= 75:
             return "green"
@@ -98,7 +98,7 @@ def load_data_from_supabase():
         lambda x: [tag.strip() for tag in str(x).split(',') if tag.strip()] if x else []
     )
     
-    # Заглушки для has_lift и has_balcony
+    # Заглушки
     df['has_lift'] = False
     df['has_balcony'] = False
     
@@ -115,7 +115,6 @@ if df.empty:
 # === ЗАГОЛОВОК ===
 st.title("🏠 Рынок жилой недвижимости Санкт-Петербурга")
 st.caption("Прототип аналитической системы | ФКТИ СПбГЭТУ «ЛЭТИ» | 2026")
-
 
 # === БОКОВАЯ ПАНЕЛЬ ===
 with st.sidebar:
@@ -210,15 +209,9 @@ with col_map:
     else:
         m = folium.Map(location=[59.9343, 30.3351], zoom_start=11, tiles="OpenStreetMap")
         
-        # Сохраняем соответствие ID -> short_name для popup
-        id_to_name = {}
-        
         for idx, row in filtered_df.iterrows():
             lat = row['lat'] + (idx * 0.0005) % 0.005
             lon = row['lon'] + (idx * 0.0003) % 0.005
-            
-            # Сохраняем соответствие
-            id_to_name[row['id']] = row['short_name']
             
             tooltip_text = f"""
             <b>{row['short_name']}</b><br>
@@ -236,7 +229,7 @@ with col_map:
                 fill_opacity=0.7,
                 weight=2,
                 tooltip=tooltip_text,
-                popup=str(row['id'])  # ID в popup
+                popup=str(row['id'])
             ).add_to(m)
         
         map_data = st_folium(m, width="100%", height=500, key="map")
@@ -250,12 +243,9 @@ with col_map:
             if popup_value and popup_value.isdigit():
                 selected_id = int(popup_value)
         
-        # 2. Выпадающий список
+        # 2. Выпадающий список (только названия)
         if not filtered_df.empty:
-            # Создаем список с отображением: "ID - short_name"
-            options_list = ["-- Выберите объект --"] + [
-                f"{row['id']} - {row['short_name']}" for _, row in filtered_df.iterrows()
-            ]
+            options_list = ["-- Выберите объект --"] + filtered_df['short_name'].tolist()
             
             selected_option = st.selectbox(
                 "Выберите объект из списка:",
@@ -263,19 +253,16 @@ with col_map:
                 key="object_select"
             )
             
-            # Если выбрано не пустое значение
             if selected_option and selected_option != "-- Выберите объект --":
-                try:
+                selected_row = filtered_df[filtered_df['short_name'] == selected_option]
+                if not selected_row.empty:
                     selected_id = selected_row.iloc[0]['id']
-                except:
-                    pass
 
 # === КАРТОЧКА ОБЪЕКТА ===
 with col_card:
     st.subheader("📋 Карточка объекта")
     
     if selected_id is not None and not filtered_df.empty:
-        # Ищем объект по ID
         prop = filtered_df[filtered_df['id'] == selected_id]
         
         if not prop.empty:
