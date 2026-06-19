@@ -5,6 +5,89 @@ from streamlit_folium import st_folium
 from sqlalchemy import create_engine
 import re
 
+def aggregate_tags(tags_string):
+    """
+    Агрегирует теги по аспекту и возвращает доминирующий цвет + процент.
+    Вход: "Шумоизоляция|green; Шумоизоляция|grey; Кухня|grey; Кухня|red"
+    Выход: ["Шумоизоляция|green|67%", "Кухня|red|50%"]
+    """
+    if not tags_string or pd.isna(tags_string):
+        return []
+    
+    # Разбиваем на отдельные теги
+    tags = [t.strip() for t in str(tags_string).split(';') if t.strip()]
+    
+    # Группируем по аспекту
+    aspects = {}
+    for tag in tags:
+        if '|' not in tag:
+            continue
+        aspect, color = tag.split('|', 1)
+        if aspect not in aspects:
+            aspects[aspect] = {'green': 0, 'red': 0, 'grey': 0}
+        if color in aspects[aspect]:
+            aspects[aspect][color] += 1
+        else:
+            aspects[aspect]['grey'] += 1  # fallback
+    
+    # Формируем результат
+    result = []
+    for aspect, colors in aspects.items():
+        total = sum(colors.values())
+        if total == 0:
+            continue
+        
+        # Находим доминирующий цвет
+        dominant_color = max(colors, key=colors.get)
+        dominant_count = colors[dominant_color]
+        percent = round(dominant_count / total * 100)
+        
+        # Если все цвета равны — оставляем серый
+        if len([c for c in colors.values() if c > 0]) > 1 and dominant_count / total <= 0.5:
+            dominant_color = 'grey'
+            percent = 50
+        
+        result.append(f"{aspect}|{dominant_color}|{percent}%")
+    
+    return result
+
+def render_colored_tags_with_percent(tags_list):
+    """Отображает теги с процентами"""
+    if not tags_list:
+        return "Нет данных об отзывах"
+    
+    color_map = {
+        'green': '#22c55e',
+        'red': '#ef4444',
+        'grey': '#6b7280',
+    }
+    
+    html_parts = []
+    for tag in tags_list:
+        if '|' not in tag:
+            continue
+        
+        parts = tag.split('|')
+        aspect = parts[0]
+        color = parts[1] if len(parts) > 1 else 'grey'
+        percent = parts[2] if len(parts) > 2 else ''
+        
+        color_hex = color_map.get(color, '#6b7280')
+        
+        if percent:
+            display_text = f"{aspect} {percent}"
+        else:
+            display_text = aspect
+        
+        html_parts.append(
+            f'<span style="display:inline-block; background:#f3f4f6; '
+            f'color:{color_hex}; padding:4px 14px; border-radius:16px; '
+            f'margin:3px 6px 3px 0; font-size:0.85em; font-weight:500; '
+            f'border:1px solid {color_hex}40;">{display_text}</span>'
+        )
+    
+    return "".join(html_parts)
+    
 def render_colored_tags(tags_string):
     """Преобразует строку тегов вида 'aspect|color; aspect|color' в HTML с цветными плашками"""
     if not tags_string or pd.isna(tags_string):
@@ -338,21 +421,29 @@ with col_card:
             
             st.divider()
 
-
             st.markdown("**🗣️ Отзывы о доме**")
             if prop['top_issues']:
                 if isinstance(prop['top_issues'], str):
-                    tags_html = render_colored_tags(prop['top_issues'])
-                    st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
+                    aggregated = aggregate_tags(prop['top_issues'])
+                    if aggregated:
+                        tags_html = render_colored_tags_with_percent(aggregated)
+                        st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
+                    else:
+                        st.caption("Нет данных об отзывах")
                 elif isinstance(prop['top_issues'], list):
                     tags_string = "; ".join(prop['top_issues'])
-                    tags_html = render_colored_tags(tags_string)
-                    st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
+                    aggregated = aggregate_tags(tags_string)
+                    if aggregated:
+                        tags_html = render_colored_tags_with_percent(aggregated)
+                        st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
+                    else:
+                        st.caption("Нет данных об отзывах")
                 else:
                     st.caption("Нет данных об отзывах")
             else:
-                st.caption("Нет данных об отзывах")
-            
+                st.caption("Нет данных об отзывах")            
+
+           
             st.divider()
             
             st.markdown("**🏪 Инфраструктура (радиус 1 км)**")
