@@ -80,7 +80,7 @@ def load_data_from_supabase():
         axis=1
     )
     
-    # Цвет по рейтингу (БОЛЕЕ КОНТРАСТНАЯ СХЕМА)
+    # Цвет по рейтингу (контрастная схема)
     def get_color(score):
         if score >= 75:
             return "green"
@@ -98,7 +98,7 @@ def load_data_from_supabase():
         lambda x: [tag.strip() for tag in str(x).split(',') if tag.strip()] if x else []
     )
     
-    # Заглушки для has_lift и has_balcony (в данных нет этих полей)
+    # Заглушки для has_lift и has_balcony
     df['has_lift'] = False
     df['has_balcony'] = False
     
@@ -223,9 +223,15 @@ with col_map:
     else:
         m = folium.Map(location=[59.9343, 30.3351], zoom_start=11, tiles="OpenStreetMap")
         
+        # Сохраняем соответствие ID -> short_name для popup
+        id_to_name = {}
+        
         for idx, row in filtered_df.iterrows():
             lat = row['lat'] + (idx * 0.0005) % 0.005
             lon = row['lon'] + (idx * 0.0003) % 0.005
+            
+            # Сохраняем соответствие
+            id_to_name[row['id']] = row['short_name']
             
             tooltip_text = f"""
             <b>{row['short_name']}</b><br>
@@ -243,108 +249,122 @@ with col_map:
                 fill_opacity=0.7,
                 weight=2,
                 tooltip=tooltip_text,
-                popup=str(row['id'])  # Передаём ID для клика
+                popup=str(row['id'])  # ID в popup
             ).add_to(m)
         
         map_data = st_folium(m, width="100%", height=500, key="map")
         
-        # Получаем ID из клика по карте
+        # === ВЫБОР ОБЪЕКТА ===
         selected_id = None
-        if map_data and map_data.get("last_object_clicked"):
-            popup_id = map_data["last_object_clicked"].get("popup")
-            if popup_id and popup_id.isdigit():
-                selected_id = int(popup_id)
         
-        # Выпадающий список
+        # 1. Клик по карте
+        if map_data and map_data.get("last_object_clicked"):
+            popup_value = map_data["last_object_clicked"].get("popup")
+            if popup_value and popup_value.isdigit():
+                selected_id = int(popup_value)
+        
+        # 2. Выпадающий список
         if not filtered_df.empty:
-            options_list = ["-- Выберите объект --"] + filtered_df['short_name'].tolist()
-            selected_short_name = st.selectbox(
+            # Создаем список с отображением: "ID - short_name"
+            options_list = ["-- Выберите объект --"] + [
+                f"{row['id']} - {row['short_name']}" for _, row in filtered_df.iterrows()
+            ]
+            
+            selected_option = st.selectbox(
                 "Выберите объект из списка:",
                 options=options_list,
                 key="object_select"
             )
             
-            if selected_short_name and selected_short_name != "-- Выберите объект --":
-                selected_row = filtered_df[filtered_df['short_name'] == selected_short_name]
-                if not selected_row.empty:
-                    selected_id = selected_row.iloc[0]['id']
+            # Если выбрано не пустое значение
+            if selected_option and selected_option != "-- Выберите объект --":
+                try:
+                    # Извлекаем ID из строки "ID - short_name"
+                    selected_id = int(selected_option.split(' - ')[0])
+                except:
+                    pass
 
 # === КАРТОЧКА ОБЪЕКТА ===
 with col_card:
     st.subheader("📋 Карточка объекта")
     
     if selected_id is not None and not filtered_df.empty:
-        prop = filtered_df[filtered_df['id'] == selected_id].iloc[0]
+        # Ищем объект по ID
+        prop = filtered_df[filtered_df['id'] == selected_id]
         
-        st.markdown(f"### 📍 {prop['short_name']}")
-        
-        price_m = prop['price'] / 1e6
-        rooms = int(prop['rooms']) if pd.notna(prop['rooms']) else "н/д"
-        area = prop['area'] if pd.notna(prop['area']) else "н/д"
-        floor = int(prop['floor']) if pd.notna(prop['floor']) else "н/д"
-        total_floors = int(prop['total_floors']) if pd.notna(prop['total_floors']) else "н/д"
-        
-        st.info(f"{rooms}-комн. | 📐 {area} м² | {floor}/{total_floors} эт. | 💰 {price_m:.1f} млн ₽")
-        
-        st.divider()
-        
-        col_info, col_photo = st.columns(2)
-        
-        with col_info:
-            st.markdown("**🏗️ Общая информация**")
-            st.text(f"Серия: {prop['series'] if prop['series'] else 'н/д'}")
-            st.text(f"Год постройки: {int(prop['year_built']) if pd.notna(prop['year_built']) else 'н/д'}")
-            st.text(f"Стены: {prop['wall_type'] if prop['wall_type'] else 'н/д'}")
-            st.text(f"Метро: {prop['metro_name'] if prop['metro_name'] else 'н/д'}")
-            if pd.notna(prop.get('metro_time')):
-                st.text(f"Время до метро: {prop['metro_time']} мин")
-        
-        with col_photo:
-            st.markdown("**🖼️ Фото**")
-            if prop['photo_url']:
-                try:
-                    st.image(prop['photo_url'], use_container_width=True)
-                except:
-                    st.image("https://placehold.co/300x200/e0e7ff/1e3a8a?text=Фото+недоступно", use_container_width=True)
+        if not prop.empty:
+            prop = prop.iloc[0]
+            
+            st.markdown(f"### 📍 {prop['short_name']}")
+            
+            price_m = prop['price'] / 1e6
+            rooms = int(prop['rooms']) if pd.notna(prop['rooms']) else "н/д"
+            area = prop['area'] if pd.notna(prop['area']) else "н/д"
+            floor = int(prop['floor']) if pd.notna(prop['floor']) else "н/д"
+            total_floors = int(prop['total_floors']) if pd.notna(prop['total_floors']) else "н/д"
+            
+            st.info(f"{rooms}-комн. | 📐 {area} м² | {floor}/{total_floors} эт. | 💰 {price_m:.1f} млн ₽")
+            
+            st.divider()
+            
+            col_info, col_photo = st.columns(2)
+            
+            with col_info:
+                st.markdown("**🏗️ Общая информация**")
+                st.text(f"Серия: {prop['series'] if prop['series'] else 'н/д'}")
+                st.text(f"Год постройки: {int(prop['year_built']) if pd.notna(prop['year_built']) else 'н/д'}")
+                st.text(f"Стены: {prop['wall_type'] if prop['wall_type'] else 'н/д'}")
+                st.text(f"Метро: {prop['metro_name'] if prop['metro_name'] else 'н/д'}")
+                if pd.notna(prop.get('metro_time')):
+                    st.text(f"Время до метро: {prop['metro_time']} мин")
+            
+            with col_photo:
+                st.markdown("**🖼️ Фото**")
+                if prop['photo_url']:
+                    try:
+                        st.image(prop['photo_url'], use_container_width=True)
+                    except:
+                        st.image("https://placehold.co/300x200/e0e7ff/1e3a8a?text=Фото+недоступно", use_container_width=True)
+                else:
+                    st.image("https://placehold.co/300x200/e0e7ff/1e3a8a?text=Фото+объекта", use_container_width=True)
+            
+            st.divider()
+            
+            st.markdown("**🗣️ Отзывы о доме**")
+            if prop['top_issues']:
+                tags_html = "".join([
+                    f'<span style="background:#e0e7ff; color:#1e3a8a; padding:4px 8px; border-radius:6px; margin:2px; display:inline-block; font-size:0.85em;">{tag}</span>' 
+                    for tag in prop['top_issues']
+                ])
+                st.markdown(f"<div style='line-height:1.8;'>{tags_html}</div>", unsafe_allow_html=True)
             else:
-                st.image("https://placehold.co/300x200/e0e7ff/1e3a8a?text=Фото+объекта", use_container_width=True)
-        
-        st.divider()
-        
-        st.markdown("**🗣️ Отзывы о доме**")
-        if prop['top_issues']:
-            tags_html = "".join([
-                f'<span style="background:#e0e7ff; color:#1e3a8a; padding:4px 8px; border-radius:6px; margin:2px; display:inline-block; font-size:0.85em;">{tag}</span>' 
-                for tag in prop['top_issues']
-            ])
-            st.markdown(f"<div style='line-height:1.8;'>{tags_html}</div>", unsafe_allow_html=True)
+                st.caption("Нет данных об отзывах")
+            
+            st.divider()
+            
+            st.markdown("**🏪 Инфраструктура (радиус 1 км)**")
+            
+            col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+            with col_m1:
+                dist = int(prop['dist_metro_m']) if pd.notna(prop['dist_metro_m']) else "н/д"
+                st.metric("🚇 До метро", f"{dist} м" if dist != "н/д" else "н/д")
+            with col_m2:
+                schools = int(prop['schools_1km']) if pd.notna(prop['schools_1km']) else "н/д"
+                st.metric("🏫 Школы", schools)
+            with col_m3:
+                parks = int(prop['parks_1km']) if pd.notna(prop['parks_1km']) else "н/д"
+                st.metric("🌲 Парки", parks)
+            with col_m4:
+                shops = int(prop['shops_1km']) if pd.notna(prop['shops_1km']) else "н/д"
+                st.metric("🛒 Магазины", shops)
+            
+            st.divider()
+            
+            if prop.get('url'):
+                st.link_button("🔗 Открыть оригинальное объявление", prop['url'], use_container_width=True)
+            else:
+                st.caption("Ссылка на объявление отсутствует")
         else:
-            st.caption("Нет данных об отзывах")
-        
-        st.divider()
-        
-        st.markdown("**🏪 Инфраструктура (радиус 1 км)**")
-        
-        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-        with col_m1:
-            dist = int(prop['dist_metro_m']) if pd.notna(prop['dist_metro_m']) else "н/д"
-            st.metric("🚇 До метро", f"{dist} м" if dist != "н/д" else "н/д")
-        with col_m2:
-            schools = int(prop['schools_1km']) if pd.notna(prop['schools_1km']) else "н/д"
-            st.metric("🏫 Школы", schools)
-        with col_m3:
-            parks = int(prop['parks_1km']) if pd.notna(prop['parks_1km']) else "н/д"
-            st.metric("🌲 Парки", parks)
-        with col_m4:
-            shops = int(prop['shops_1km']) if pd.notna(prop['shops_1km']) else "н/д"
-            st.metric("🛒 Магазины", shops)
-        
-        st.divider()
-        
-        if prop.get('url'):
-            st.link_button("🔗 Открыть оригинальное объявление", prop['url'], use_container_width=True)
-        else:
-            st.caption("Ссылка на объявление отсутствует")
-    
+            st.info("👆 Выберите объект на карте или из списка, чтобы открыть карточку.")
     else:
         st.info("👆 Выберите объект на карте или из списка, чтобы открыть карточку.")
