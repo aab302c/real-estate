@@ -15,7 +15,7 @@ st.set_page_config(
 # === ПОДКЛЮЧЕНИЕ К SUPABASE ===
 DB_URL_SUPABASE = "postgresql://postgres.wtqngiewhatiufaeorcg:9zRV67GtDU1rUyHo@aws-1-eu-north-1.pooler.supabase.com:5432/postgres?sslmode=require"
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=600)
 def load_data_from_supabase():
     """Загружает данные из Supabase"""
     engine = create_engine(DB_URL_SUPABASE)
@@ -71,7 +71,7 @@ def load_data_from_supabase():
             return street, house
         return full_address, ""
     
-    # === ОБРАБОТКА ДАННЫХ (как в твоём скрипте) ===
+    # === ОБРАБОТКА ДАННЫХ ===
     df[['street', 'house']] = df['address'].apply(
         lambda x: pd.Series(parse_address(x))
     )
@@ -80,11 +80,13 @@ def load_data_from_supabase():
         axis=1
     )
     
-    # Цвет по рейтингу
+    # Цвет по рейтингу (БОЛЕЕ КОНТРАСТНАЯ СХЕМА)
     def get_color(score):
-        if score >= 70:
+        if score >= 75:
             return "green"
-        elif score >= 50:
+        elif score >= 60:
+            return "blue"
+        elif score >= 45:
             return "orange"
         else:
             return "red"
@@ -96,7 +98,7 @@ def load_data_from_supabase():
         lambda x: [tag.strip() for tag in str(x).split(',') if tag.strip()] if x else []
     )
     
-    # Добавляем заглушки для has_lift и has_balcony (в данных нет этих полей)
+    # Заглушки для has_lift и has_balcony (в данных нет этих полей)
     df['has_lift'] = False
     df['has_balcony'] = False
     
@@ -111,15 +113,30 @@ if df.empty:
     st.stop()
 
 # === ЗАГОЛОВОК ===
-st.title("Рынок жилой недвижимости Санкт-Петербурга")
+st.title("🏠 Рынок жилой недвижимости Санкт-Петербурга")
 st.caption("Прототип аналитической системы | ФКТИ СПбГЭТУ «ЛЭТИ» | 2026")
+
+# === СТАТИСТИКА ===
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("📊 Всего объектов", len(df))
+with col2:
+    avg_price = df['price'].mean() / 1e6
+    st.metric("💰 Средняя цена", f"{avg_price:.1f} млн ₽")
+with col3:
+    avg_area = df['area'].mean()
+    st.metric("📐 Средняя площадь", f"{avg_area:.1f} м²")
+with col4:
+    avg_rating = df['reputation_score'].mean()
+    st.metric("⭐ Средний рейтинг", f"{avg_rating:.1f}")
 
 # === БОКОВАЯ ПАНЕЛЬ ===
 with st.sidebar:
-    st.header("Фильтры")
+    st.header("🔍 Фильтры")
     
-    min_rating = st.slider("Мин. рейтинг репутации 🛈", 0, 100, 0, key="rating")
+    min_rating = st.slider("Мин. рейтинг репутации", 0, 100, 0, key="rating")
     
+    st.subheader("Тип жилья")
     housing_types = df['housing_type'].dropna().unique().tolist()
     if not housing_types:
         housing_types = ["Вторичка"]
@@ -140,6 +157,7 @@ with st.sidebar:
         key="budget"
     )
     
+    st.subheader("Год постройки")
     min_year = int(df['year_built'].min()) if df['year_built'].min() > 0 else 1900
     max_year = int(df['year_built'].max()) if df['year_built'].max() > 0 else 2024
     year_range = st.slider(
@@ -150,6 +168,7 @@ with st.sidebar:
         key="year_range"
     )
     
+    st.subheader("Количество комнат")
     rooms_options = sorted(df['rooms'].dropna().unique().astype(int).tolist())
     selected_rooms = st.multiselect(
         "Выберите количество комнат (можно несколько):",
@@ -158,6 +177,7 @@ with st.sidebar:
         key="rooms_multiselect"
     )
     
+    st.subheader("Этаж")
     col1, col2 = st.columns(2)
     with col1:
         exclude_first = st.checkbox("Не первый", key="exclude_first")
@@ -195,6 +215,7 @@ if exclude_last:
 col_map, col_card = st.columns([2, 1])
 
 with col_map:
+    st.subheader("🗺️ Карта объектов")
     
     if filtered_df.empty:
         st.warning("⚠️ Нет объектов, соответствующих фильтрам")
@@ -222,24 +243,21 @@ with col_map:
                 fill_opacity=0.7,
                 weight=2,
                 tooltip=tooltip_text,
-                popup=row['short_name']
+                popup=str(row['id'])  # Передаём ID для клика
             ).add_to(m)
         
         map_data = st_folium(m, width="100%", height=500, key="map")
         
-        # Обработка клика по карте
+        # Получаем ID из клика по карте
         selected_id = None
         if map_data and map_data.get("last_object_clicked"):
-            popup_name = map_data["last_object_clicked"].get("popup")
-            if popup_name:
-                selected_row = filtered_df[filtered_df['short_name'] == popup_name]
-                if not selected_row.empty:
-                    selected_id = selected_row.iloc[0]['id']
+            popup_id = map_data["last_object_clicked"].get("popup")
+            if popup_id and popup_id.isdigit():
+                selected_id = int(popup_id)
         
-        # === ВЫПАДАЮЩИЙ СПИСОК ===
+        # Выпадающий список
         if not filtered_df.empty:
             options_list = ["-- Выберите объект --"] + filtered_df['short_name'].tolist()
-            
             selected_short_name = st.selectbox(
                 "Выберите объект из списка:",
                 options=options_list,
