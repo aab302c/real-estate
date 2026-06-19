@@ -266,8 +266,7 @@ with col_map:
             # Если выбрано не пустое значение
             if selected_option and selected_option != "-- Выберите объект --":
                 try:
-                    # Извлекаем ID из строки "ID - short_name"
-                    selected_id = int(selected_option.split(' - ')[0])
+                    selected_id = selected_row.iloc[0]['id']
                 except:
                     pass
 
