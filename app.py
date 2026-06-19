@@ -436,24 +436,82 @@ with col_card:
             st.divider()
             
             st.markdown("**🏪 Инфраструктура (радиус 1 км)**")
-            
+
             col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+
+            # 1. Метро
             with col_m1:
                 metro_time = int(prop['metro_time']) if pd.notna(prop['metro_time']) else None
                 if metro_time:
                     dist_m = metro_time * 80
-                    st.metric("🚇 До метро", f"{dist_m} м")
+                    st.markdown(f"""
+                        <div style="text-align:center; padding:0px;">
+                            <div style="font-size:0.7em; color:#6b7280;">🚇 До метро</div>
+                            <div style="font-size:1.1em; font-weight:bold; color:#1f2937;">{metro_time} мин</div>
+                            <div style="font-size:0.65em; color:#9ca3af;">{dist_m} м</div>
+                        </div>
+                    """, unsafe_allow_html=True)
                 else:
-                    st.metric("🚇 До метро", "н/д")
+                    st.markdown(f"""
+                        <div style="text-align:center; padding:0px;">
+                            <div style="font-size:0.7em; color:#6b7280;">🚇 До метро</div>
+                            <div style="font-size:1.1em; font-weight:bold; color:#9ca3af;">н/д</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+            # 2. Школы
             with col_m2:
-                schools = int(prop['schools_1km']) if pd.notna(prop['schools_1km']) else "н/д"
-                st.metric("🏫 Школы", schools)
+                schools = int(prop['schools_1km']) if pd.notna(prop['schools_1km']) else None
+                if schools:
+                    st.markdown(f"""
+                        <div style="text-align:center; padding:0px;">
+                            <div style="font-size:0.7em; color:#6b7280;">🏫 Школы</div>
+                            <div style="font-size:1.1em; font-weight:bold; color:#1f2937;">{schools}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                        <div style="text-align:center; padding:0px;">
+                            <div style="font-size:0.7em; color:#6b7280;">🏫 Школы</div>
+                            <div style="font-size:1.1em; font-weight:bold; color:#9ca3af;">н/д</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+            # 3. Парки
             with col_m3:
-                parks = int(prop['parks_1km']) if pd.notna(prop['parks_1km']) else "н/д"
-                st.metric("🌲 Парки", parks)
+                parks = int(prop['parks_1km']) if pd.notna(prop['parks_1km']) else None
+                if parks:
+                    st.markdown(f"""
+                        <div style="text-align:center; padding:0px;">
+                            <div style="font-size:0.7em; color:#6b7280;">🌲 Парки</div>
+                            <div style="font-size:1.1em; font-weight:bold; color:#1f2937;">{parks}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                        <div style="text-align:center; padding:0px;">
+                            <div style="font-size:0.7em; color:#6b7280;">🌲 Парки</div>
+                            <div style="font-size:1.1em; font-weight:bold; color:#9ca3af;">н/д</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+            # 4. Магазины
             with col_m4:
-                shops = int(prop['shops_1km']) if pd.notna(prop['shops_1km']) else "н/д"
-                st.metric("🛒 Магазины", shops)
+                shops = int(prop['shops_1km']) if pd.notna(prop['shops_1km']) else None
+                if shops:
+                    st.markdown(f"""
+                        <div style="text-align:center; padding:0px;">
+                            <div style="font-size:0.7em; color:#6b7280;">🛒 Магазины</div>
+                            <div style="font-size:1.1em; font-weight:bold; color:#1f2937;">{shops}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                        <div style="text-align:center; padding:0px;">
+                            <div style="font-size:0.7em; color:#6b7280;">🛒 Магазины</div>
+                            <div style="font-size:1.1em; font-weight:bold; color:#9ca3af;">н/д</div>
+                        </div>
+                    """, unsafe_allow_html=True)
             
             st.divider()
             
