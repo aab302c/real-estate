@@ -439,8 +439,13 @@ with col_card:
             
             col_m1, col_m2, col_m3, col_m4 = st.columns(4)
             with col_m1:
-                dist = int(prop['dist_metro_m']) if pd.notna(prop['dist_metro_m']) else "н/д"
-                st.metric("🚇 До метро", f"{dist} м" if dist != "н/д" else "н/д")
+                with col_m1:
+                metro_time = int(prop['metro_time']) if pd.notna(prop['metro_time']) else None
+                if metro_time:
+                    dist_m = metro_time * 80
+                    st.metric("🚇 До метро", f"{metro_time} мин ({dist_m} м)")
+                else:
+                    st.metric("🚇 До метро", "н/д")
             with col_m2:
                 schools = int(prop['schools_1km']) if pd.notna(prop['schools_1km']) else "н/д"
                 st.metric("🏫 Школы", schools)
