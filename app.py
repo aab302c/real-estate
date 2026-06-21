@@ -41,6 +41,7 @@ def aggregate_tags(tags_string):
     for aspect, colors in aspects.items():
         total_aspect = colors['total']
         green_count = colors.get('green', 0)
+        red_count = colors.get('red', 0)
         
         # Первый процент: доля позитивных отзывов по этому аспекту
         if total_aspect > 0:
@@ -51,10 +52,12 @@ def aggregate_tags(tags_string):
         # Второй процент: доля упоминаний этого аспекта среди всех тегов
         popularity = round(total_aspect / total_tags * 100)
         
-        # Определяем цвет (доминирующий)
-        if green_count / total_aspect >= 0.6:
+        # Определяем цвет
+        if positivity >= 60:
             color = 'green'
-        elif colors.get('red', 0) / total_aspect >= 0.6:
+        elif positivity == 0 and red_count > 0:
+            color = 'red'
+        elif red_count / total_aspect >= 0.6:
             color = 'red'
         else:
             color = 'grey'
