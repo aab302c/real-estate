@@ -432,7 +432,15 @@ with col_card:
             
             st.divider()
 
-            st.markdown("**Отзывы о доме**")
+            st.markdown(
+                """
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="font-weight:bold;">Отзывы о доме</span>
+                    <span style="cursor:help; font-size:0.9em; color:#6b7280;" title="Первый процент — доля положительных отзывов по теме, второй — частота упоминания темы в обсуждениях дома.">ⓘ</span>
+                </div>
+                """,
+               unsafe_allow_html=True
+            )        
             if prop['top_issues']:
                 if isinstance(prop['top_issues'], str):
                     aggregated = aggregate_tags(prop['top_issues'])
