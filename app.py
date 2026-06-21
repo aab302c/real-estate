@@ -256,10 +256,10 @@ with st.sidebar:
     st.header("Фильтры")
     
     min_rating = st.slider(
-        "Мин. рейтинг репутации",
+        "Мин. индекс привлекательности",
         0, 100, 0,
         key="rating",
-        help="Рейтинг на основе отзывов жильцов, состояния дома, инфраструктуры района и года постройки"
+        help="Соответствие предложения рыночным предпочтениям по ценовой доступности, техническому качеству здания и репутации среди жильцов."
     )
     
 
@@ -355,8 +355,8 @@ with col_map:
             tooltip_text = f"""
             <b>{row['short_name']}</b><br>
             {row['price']/1e6:.1f} млн ₽<br>
-            {row['rooms']} комн. | 📐 {row['area']} м²<br>
-            {row['reputation_score']}
+            {row['rooms']} комн. |  {row['area']} м²<br>
+            Индекс: {row['reputation_score']}
             """
             
             folium.CircleMarker(
@@ -436,7 +436,7 @@ with col_card:
                 """
                 <div style="display:flex; align-items:center; gap:6px;">
                     <span style="font-weight:bold;">Отзывы о доме</span>
-                    <span style="cursor:help; font-size:0.9em; color:#6b7280;" title="Первый процент — доля положительных отзывов по теме, второй — частота упоминания темы в обсуждениях дома.">ⓘ</span>
+                    <span style="cursor:help; font-size:0.9em; color:#6b7280;" title="Доля отзывов этой тональности по теме/Частота упоминания темы в отзывах.">ⓘ</span>
                 </div>
                 """,
                unsafe_allow_html=True
