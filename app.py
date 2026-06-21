@@ -287,14 +287,14 @@ with st.sidebar:
     )
     
 
+
+    floor_min = st.number_input("Этаж от:", min_value=1, max_value=25, value=1, key="floor_min")
+    floor_max = st.number_input("Этаж до:", min_value=1, max_value=25, value=25, key="floor_max")
     col1, col2 = st.columns(2)
     with col1:
         exclude_first = st.checkbox("Не первый", key="exclude_first")
     with col2:
         exclude_last = st.checkbox("Не последний", key="exclude_last")
-    floor_min = st.number_input("Этаж от:", min_value=1, max_value=25, value=1, key="floor_min")
-    floor_max = st.number_input("Этаж до:", min_value=1, max_value=25, value=25, key="floor_max")
-
 # === ФИЛЬТРАЦИЯ ===
 filtered_df = df[
     (df['price']/1e6 >= budget_range[0]) & 
@@ -337,9 +337,9 @@ with col_map:
             
             tooltip_text = f"""
             <b>{row['short_name']}</b><br>
-            💰 {row['price']/1e6:.1f} млн ₽<br>
-            🛏️ {row['rooms']} комн. | 📐 {row['area']} м²<br>
-            ⭐ {row['reputation_score']}
+            {row['price']/1e6:.1f} млн ₽<br>
+            {row['rooms']} комн. | 📐 {row['area']} м²<br>
+            {row['reputation_score']}
             """
             
             folium.CircleMarker(
@@ -388,14 +388,14 @@ with col_card:
             floor = int(prop['floor']) if pd.notna(prop['floor']) else "н/д"
             total_floors = int(prop['total_floors']) if pd.notna(prop['total_floors']) else "н/д"
             
-            st.info(f"{rooms}-комн. | 📐 {area} м² | {floor}/{total_floors} эт. | 💰 {price_m:.1f} млн ₽")
+            st.info(f"{rooms}-комн. | {area} м² | {floor}/{total_floors} эт. | {price_m:.1f} млн ₽")
             
             st.divider()
             
             col_info, col_photo = st.columns(2)
             
             with col_info:
-                st.markdown("**🏗️ Общая информация**")
+                st.markdown("**Общая информация**")
                 st.text(f"Серия: {prop['series'] if prop['series'] else 'н/д'}")
                 st.text(f"Год постройки: {int(prop['year_built']) if pd.notna(prop['year_built']) else 'н/д'}")
                 st.text(f"Стены: {prop['wall_type'] if prop['wall_type'] else 'н/д'}")
@@ -404,7 +404,7 @@ with col_card:
                     st.text(f"Время до метро: {prop['metro_time']} мин")
             
             with col_photo:
-                st.markdown("**🖼️ Фото**")
+                st.markdown("**Фото**")
                 if prop['photo_url']:
                     try:
                         st.image(prop['photo_url'], use_container_width=True)
@@ -415,7 +415,7 @@ with col_card:
             
             st.divider()
 
-            st.markdown("**🗣️ Отзывы о доме**")
+            st.markdown("**Отзывы о доме**")
             if prop['top_issues']:
                 if isinstance(prop['top_issues'], str):
                     aggregated = aggregate_tags(prop['top_issues'])
@@ -440,7 +440,7 @@ with col_card:
            
             st.divider()
             
-            st.markdown("**🏪 Инфраструктура (радиус 1 км)**")
+            st.markdown("**Инфраструктура (радиус 1 км)**")
 
             col_m1, col_m2, col_m3, col_m4 = st.columns(4)
 
@@ -451,14 +451,14 @@ with col_card:
                     dist_m = metro_time * 80
                     st.markdown(f"""
                         <div style="text-align:center; padding:0px;">
-                            <div style="font-size:0.7em; color:#6b7280;">🚇 До метро</div>
+                            <div style="font-size:0.7em; color:#6b7280;">До метро</div>
                             <div style="font-size:1.1em; font-weight:bold; color:#1f2937;">{dist_m} м</div>
                         </div>
                     """, unsafe_allow_html=True)
                 else:
                     st.markdown(f"""
                         <div style="text-align:center; padding:0px;">
-                            <div style="font-size:0.7em; color:#6b7280;">🚇 До метро</div>
+                            <div style="font-size:0.7em; color:#6b7280;">До метро</div>
                             <div style="font-size:1.1em; font-weight:bold; color:#9ca3af;">н/д</div>
                         </div>
                     """, unsafe_allow_html=True)
@@ -469,14 +469,14 @@ with col_card:
                 if schools:
                     st.markdown(f"""
                         <div style="text-align:center; padding:0px;">
-                            <div style="font-size:0.7em; color:#6b7280;">🏫 Школы</div>
+                            <div style="font-size:0.7em; color:#6b7280;">Школы</div>
                             <div style="font-size:1.1em; font-weight:bold; color:#1f2937;">{schools}</div>
                         </div>
                     """, unsafe_allow_html=True)
                 else:
                     st.markdown(f"""
                         <div style="text-align:center; padding:0px;">
-                            <div style="font-size:0.7em; color:#6b7280;">🏫 Школы</div>
+                            <div style="font-size:0.7em; color:#6b7280;">Школы</div>
                             <div style="font-size:1.1em; font-weight:bold; color:#9ca3af;">н/д</div>
                         </div>
                     """, unsafe_allow_html=True)
@@ -487,14 +487,14 @@ with col_card:
                 if parks:
                     st.markdown(f"""
                         <div style="text-align:center; padding:0px;">
-                            <div style="font-size:0.7em; color:#6b7280;">🌲 Парки</div>
+                            <div style="font-size:0.7em; color:#6b7280;">Парки</div>
                             <div style="font-size:1.1em; font-weight:bold; color:#1f2937;">{parks}</div>
                         </div>
                     """, unsafe_allow_html=True)
                 else:
                     st.markdown(f"""
                         <div style="text-align:center; padding:0px;">
-                            <div style="font-size:0.7em; color:#6b7280;">🌲 Парки</div>
+                            <div style="font-size:0.7em; color:#6b7280;">Парки</div>
                             <div style="font-size:1.1em; font-weight:bold; color:#9ca3af;">н/д</div>
                         </div>
                     """, unsafe_allow_html=True)
@@ -505,14 +505,14 @@ with col_card:
                 if shops:
                     st.markdown(f"""
                         <div style="text-align:center; padding:0px;">
-                            <div style="font-size:0.7em; color:#6b7280;">🛒 Магазины</div>
+                            <div style="font-size:0.7em; color:#6b7280;">Магазины</div>
                             <div style="font-size:1.1em; font-weight:bold; color:#1f2937;">{shops}</div>
                         </div>
                     """, unsafe_allow_html=True)
                 else:
                     st.markdown(f"""
                         <div style="text-align:center; padding:0px;">
-                            <div style="font-size:0.7em; color:#6b7280;">🛒 Магазины</div>
+                            <div style="font-size:0.7em; color:#6b7280;">Магазины</div>
                             <div style="font-size:1.1em; font-weight:bold; color:#9ca3af;">н/д</div>
                         </div>
                     """, unsafe_allow_html=True)
