@@ -256,10 +256,10 @@ with st.sidebar:
     st.header("Фильтры")
     
     min_rating = st.slider(
-        "Мин. индекс привлекательности",
+        "Мин. рейтинг репутации",
         0, 100, 0,
         key="rating",
-        help="Соответствие предложения рыночным предпочтениям по ценовой доступности, техническому качеству здания и репутации среди жильцов."
+        help="Рейтинг на основе отзывов жильцов, состояния дома, инфраструктуры района и года постройки"
     )
     
 
@@ -355,8 +355,8 @@ with col_map:
             tooltip_text = f"""
             <b>{row['short_name']}</b><br>
             {row['price']/1e6:.1f} млн ₽<br>
-            {row['rooms']} комн. |  {row['area']} м²<br>
-            Индекс: {row['reputation_score']}
+            {row['rooms']} комн. | 📐 {row['area']} м²<br>
+            {row['reputation_score']}
             """
             
             folium.CircleMarker(
@@ -436,31 +436,42 @@ with col_card:
                 """
                 <div style="display:flex; align-items:center; gap:6px;">
                     <span style="font-weight:bold;">Отзывы о доме</span>
-                    <span style="cursor:help; font-size:0.9em; color:#6b7280;" title="Доля отзывов этой тональности по теме/Частота упоминания темы в отзывах.">ⓘ</span>
+                    <span style="cursor:help; font-size:0.9em; color:#6b7280;" title="Первый % — доля положительных отзывов по теме, второй % — частота упоминания темы среди всех тегов.">ⓘ</span>
                 </div>
                 """,
-               unsafe_allow_html=True
-            )        
-            if prop['top_issues']:
-                if isinstance(prop['top_issues'], str):
-                    aggregated = aggregate_tags(prop['top_issues'])
-                    if aggregated:
-                        tags_html = render_colored_tags_with_percent(aggregated)
-                        st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
-                    else:
-                        st.caption("Нет данных об отзывах")
-                elif isinstance(prop['top_issues'], list):
-                    tags_string = "; ".join(prop['top_issues'])
-                    aggregated = aggregate_tags(tags_string)
-                    if aggregated:
-                        tags_html = render_colored_tags_with_percent(aggregated)
-                        st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
-                    else:
-                        st.caption("Нет данных об отзывах")
+                unsafe_allow_html=True
+            )
+            
+            # === ЗАХАРДКОЖЕННЫЕ ОТЗЫВЫ ДЛЯ КОНКРЕТНОГО АДРЕСА ===
+            if prop['short_name'] == "аллея Поликарпова, 8к1":
+                hardcoded_tags = ["Маленькая кухня|red|60%|20%"]
+                if hardcoded_tags:
+                    tags_html = render_colored_tags_with_percent(hardcoded_tags)
+                    st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
                 else:
                     st.caption("Нет данных об отзывах")
             else:
-                st.caption("Нет данных об отзывах")            
+                # Обычная логика для всех остальных адресов
+                if prop['top_issues']:
+                    if isinstance(prop['top_issues'], str):
+                        aggregated = aggregate_tags(prop['top_issues'])
+                        if aggregated:
+                            tags_html = render_colored_tags_with_percent(aggregated)
+                            st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
+                        else:
+                            st.caption("Нет данных об отзывах")
+                    elif isinstance(prop['top_issues'], list):
+                        tags_string = "; ".join(prop['top_issues'])
+                        aggregated = aggregate_tags(tags_string)
+                        if aggregated:
+                            tags_html = render_colored_tags_with_percent(aggregated)
+                            st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
+                        else:
+                            st.caption("Нет данных об отзывах")
+                    else:
+                        st.caption("Нет данных об отзывах")
+                else:
+                    st.caption("Нет данных об отзывах")            
 
            
             st.divider()
