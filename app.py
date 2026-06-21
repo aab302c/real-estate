@@ -444,7 +444,7 @@ with col_card:
             
             # === ЗАХАРДКОЖЕННЫЕ ОТЗЫВЫ ДЛЯ КОНКРЕТНОГО АДРЕСА ===
             if prop['short_name'] == "аллея Поликарпова, 8к1":
-                hardcoded_tags = ["Маленькая кухня|red|60%|20%"]
+                hardcoded_tags = ["Маленькая кухня|red|60% / |20%", "Вентиляция|green|53% / |10%"]
                 if hardcoded_tags:
                     tags_html = render_colored_tags_with_percent(hardcoded_tags)
                     st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
