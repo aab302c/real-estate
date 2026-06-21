@@ -256,10 +256,10 @@ with st.sidebar:
     st.header("Фильтры")
     
     min_rating = st.slider(
-        "Мин. рейтинг репутации",
+        "Мин. индекс привлекательности",
         0, 100, 0,
         key="rating",
-        help="Рейтинг на основе отзывов жильцов, состояния дома, инфраструктуры района и года постройки"
+        help="Соответствие предложения рыночным предпочтениям по ценовой доступности, техническому качеству здания и репутации среди жильцов."
     )
     
 
@@ -412,13 +412,17 @@ with col_card:
             col_info, col_photo = st.columns(2)
             
             with col_info:
-                st.markdown("**Общая информация**")
+                st.markdown("**О квартире**")
+                st.text(f"Площадь кухни: 6,2 м²")
+                st.text(f"Высота потолков: 2,5 м")
+                st.text(f"Санузел: Раздельный")
+                st.markdown("**О доме**")
                 st.text(f"Серия: {prop['series'] if prop['series'] else 'н/д'}")
                 st.text(f"Год постройки: {int(prop['year_built']) if pd.notna(prop['year_built']) else 'н/д'}")
                 st.text(f"Стены: {prop['wall_type'] if prop['wall_type'] else 'н/д'}")
+                st.text(f"Лифтов: 1")
+                st.text(f"Подъездов: 18")
                 st.text(f"Метро: {prop['metro_name'] if prop['metro_name'] else 'н/д'}")
-                if pd.notna(prop.get('metro_time')):
-                    st.text(f"Время до метро: {prop['metro_time']} мин")
             
             with col_photo:
                 st.markdown("**Фото**")
@@ -435,8 +439,8 @@ with col_card:
             st.markdown(
                 """
                 <div style="display:flex; align-items:center; gap:6px;">
-                    <span style="font-weight:bold;">Отзывы о доме</span>
-                    <span style="cursor:help; font-size:0.9em; color:#6b7280;" title="Первый % — доля положительных отзывов по теме, второй % — частота упоминания темы среди всех тегов.">ⓘ</span>
+                    <span style="font-weight:bold;">Отзывы о серии дома</span>
+                    <span style="cursor:help; font-size:0.9em; color:#6b7280;" title="Доля отзывов этой тональности по теме / Частота упоминания темы среди всех отзывов.">ⓘ</span>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -444,7 +448,7 @@ with col_card:
             
             # === ЗАХАРДКОЖЕННЫЕ ОТЗЫВЫ ДЛЯ КОНКРЕТНОГО АДРЕСА ===
             if prop['short_name'] == "аллея Поликарпова, 8к1":
-                hardcoded_tags = ["Маленькая кухня|red|60% / |20%", "Вентиляция|green|53% / |10%", "Шумоизоляция|gray|40% / |33%, "Текут швы|red|75% / |17%""]
+                hardcoded_tags = ["Маленькая кухня|red|60% / |20%", "Вентиляция|green|53% / |10%", "Шумоизоляция|gray|40% / |33%," "Текут швы|red|75% / |17%"]
                 if hardcoded_tags:
                     tags_html = render_colored_tags_with_percent(hardcoded_tags)
                     st.markdown(f"<div style='line-height:2.4;'>{tags_html}</div>", unsafe_allow_html=True)
