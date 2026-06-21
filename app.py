@@ -7,52 +7,64 @@ import re
 
 def aggregate_tags(tags_string):
     """
-    Агрегирует теги по аспекту и возвращает доминирующий цвет + процент.
-    Вход: "Шумоизоляция|green; Шумоизоляция|grey; Кухня|grey; Кухня|red"
-    Выход: ["Шумоизоляция|green|67%", "Кухня|red|50%"]
+    Агрегирует теги по аспекту.
+    Вход: "Шумоизоляция|green; Шумоизоляция|green; Шумоизоляция|red; Кухня|red"
+    Выход: ["Шумоизоляция|green|67%|50%", "Кухня|red|0%|25%"]
+    
+    Первый процент: доля позитивных (green) отзывов по этому аспекту
+    Второй процент: доля упоминаний этого аспекта среди всех тегов
     """
     if not tags_string or pd.isna(tags_string):
         return []
     
-    # Разбиваем на отдельные теги
     tags = [t.strip() for t in str(tags_string).split(';') if t.strip()]
     
-    # Группируем по аспекту
+    if not tags:
+        return []
+    
+    # Общее количество тегов
+    total_tags = len(tags)
+    
+    # Считаем упоминания по аспектам и тональность
     aspects = {}
     for tag in tags:
         if '|' not in tag:
             continue
         aspect, color = tag.split('|', 1)
         if aspect not in aspects:
-            aspects[aspect] = {'green': 0, 'red': 0, 'grey': 0}
-        if color in aspects[aspect]:
-            aspects[aspect][color] += 1
-        else:
-            aspects[aspect]['grey'] += 1  # fallback
+            aspects[aspect] = {'green': 0, 'red': 0, 'grey': 0, 'total': 0}
+        aspects[aspect][color] = aspects[aspect].get(color, 0) + 1
+        aspects[aspect]['total'] += 1
     
     # Формируем результат
     result = []
     for aspect, colors in aspects.items():
-        total = sum(colors.values())
-        if total == 0:
-            continue
+        total_aspect = colors['total']
+        green_count = colors.get('green', 0)
         
-        # Находим доминирующий цвет
-        dominant_color = max(colors, key=colors.get)
-        dominant_count = colors[dominant_color]
-        percent = round(dominant_count / total * 100)
+        # Первый процент: доля позитивных отзывов по этому аспекту
+        if total_aspect > 0:
+            positivity = round(green_count / total_aspect * 100)
+        else:
+            positivity = 0
         
-        # Если все цвета равны — оставляем серый
-        if len([c for c in colors.values() if c > 0]) > 1 and dominant_count / total <= 0.5:
-            dominant_color = 'grey'
-            percent = 50
+        # Второй процент: доля упоминаний этого аспекта среди всех тегов
+        popularity = round(total_aspect / total_tags * 100)
         
-        result.append(f"{aspect}|{dominant_color}|{percent}%")
+        # Определяем цвет (доминирующий)
+        if green_count / total_aspect >= 0.6:
+            color = 'green'
+        elif colors.get('red', 0) / total_aspect >= 0.6:
+            color = 'red'
+        else:
+            color = 'grey'
+        
+        result.append(f"{aspect}|{color}|{positivity}%|{popularity}%")
     
     return result
 
 def render_colored_tags_with_percent(tags_list):
-    """Отображает теги с процентами"""
+    """Отображает теги с двумя процентами"""
     if not tags_list:
         return "Нет данных об отзывах"
     
@@ -70,12 +82,14 @@ def render_colored_tags_with_percent(tags_list):
         parts = tag.split('|')
         aspect = parts[0]
         color = parts[1] if len(parts) > 1 else 'grey'
-        percent = parts[2] if len(parts) > 2 else ''
+        positivity = parts[2] if len(parts) > 2 else ''
+        popularity = parts[3] if len(parts) > 3 else ''
         
         color_hex = color_map.get(color, '#6b7280')
         
-        if percent:
-            display_text = f"{aspect} {percent}"
+        # Формат: "Аспект 30% 20%"
+        if positivity and popularity:
+            display_text = f"{aspect} {positivity} {popularity}"
         else:
             display_text = aspect
         
@@ -168,7 +182,7 @@ def load_data_from_supabase():
         schools_1km,
         parks_1km,
         shops_1km
-    FROM v_dashboard_data_v2  -- <--- ИЗМЕНЕНО НА v2
+    FROM v_dashboard_data_v2
     WHERE lat IS NOT NULL AND lon IS NOT NULL
       AND lat BETWEEN 59.5 AND 60.5
       AND lon BETWEEN 29.5 AND 30.8
