@@ -355,8 +355,8 @@ with col_map:
             tooltip_text = f"""
             <b>{row['short_name']}</b><br>
             {row['price']/1e6:.1f} млн ₽<br>
-            {row['rooms']} комн. | 📐 {row['area']} м²<br>
-            {row['reputation_score']}
+            {row['rooms']} комн. | {row['area']} м²<br>
+            Индекс: {row['reputation_score']}
             """
             
             folium.CircleMarker(
